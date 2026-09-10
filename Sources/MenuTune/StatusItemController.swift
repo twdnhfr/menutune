@@ -11,12 +11,14 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private var clickMonitor: Any?
     private var appearanceObservation: NSKeyValueObservation?
     private var hotKey: GlobalHotKey?
+    private let floating: FloatingPlayerController
     private var previousApplication: NSRunningApplication?
     var isShown: Bool { popover.isShown }
     var onDidShow: (() -> Void)?
 
     init(model: AppModel) {
         self.model = model
+        floating = FloatingPlayerController(player: model.player)
         item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         super.init()
         item.button?.target = self
@@ -28,6 +30,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         let content = NSHostingController(rootView: PlayerView(model: model))
         popover.contentViewController = content
         model.onCollapse = { [weak self] in self?.hide(restoreFocus: true) }
+        model.onTogglePopOut = { [weak self] in self?.togglePopOut() }
         if let button = item.button {
             appearanceObservation = button.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
                 DispatchQueue.main.async { self?.refresh() }
@@ -57,6 +60,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             next.target = self
             menu.addItem(next)
             menu.addItem(.separator())
+            let popOut = NSMenuItem(title: model.isPoppedOut ? "Video zurückholen" : "Video auskoppeln", action: #selector(togglePopOut), keyEquivalent: "")
+            popOut.target = self
+            popOut.isEnabled = model.currentItem != nil
+            menu.addItem(popOut)
+            menu.addItem(.separator())
             let quit = NSMenuItem(title: "MenuTune beenden", action: #selector(quitApp), keyEquivalent: "")
             quit.target = self
             menu.addItem(quit)
@@ -68,6 +76,19 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     func toggle() {
         if popover.isShown { hide(restoreFocus: true) }
         else { show() }
+    }
+
+    @objc func togglePopOut() {
+        if model.isPoppedOut {
+            floating.hide()
+            model.isPoppedOut = false
+            show()
+        } else {
+            guard model.currentItem != nil else { return }
+            model.isPoppedOut = true
+            floating.show(size: model.playerSize, screen: item.button?.window?.screen)
+            hide(restoreFocus: true)
+        }
     }
 
     func show() {
@@ -109,6 +130,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     private func refresh() {
+        floating.updateSize(model.playerSize)
         resize()
         let dark = item.button?.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         item.button?.image = Self.icon(indicator: model.playbackIndicator, dark: dark)
@@ -142,7 +164,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
     private func resize() {
         if model.playerSize == .mini {
-            let size = NSSize(width: model.playerSize.width, height: model.playerSize.videoHeight + 32)
+            let size = NSSize(width: model.playerSize.width, height: model.embeddedVideoHeight + 32)
             if popover.contentSize != size { popover.contentSize = size }
             return
         }
@@ -151,8 +173,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         let noticeHeight = (model.errorMessage == nil ? 0.0 : 80.0) + (model.storageWarning == nil ? 0.0 : 80.0)
             + (model.clipboardSuggestion == nil ? 0.0 : 40.0)
             + (model.shortcutWarning == nil ? 0.0 : 60.0)
-        let height = min(available - 30, 446 + queueHeight + noticeHeight)
-        let size = NSSize(width: model.playerSize.width, height: max(400, height))
+        let height = min(available - 30, 194 + model.embeddedVideoHeight + queueHeight + noticeHeight)
+        let size = NSSize(width: model.playerSize.width, height: max(model.isPoppedOut ? 230 : 400, height))
         if popover.contentSize != size { popover.contentSize = size }
     }
 
@@ -161,6 +183,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     @objc private func quitApp() { NSApp.terminate(nil) }
 
     func shutdown() {
+        floating.shutdown()
+        model.onTogglePopOut = nil
         hotKey?.unregister()
         hotKey = nil
         hide()

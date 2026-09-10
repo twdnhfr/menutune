@@ -16,7 +16,9 @@ MenuTune erscheint dauerhaft als Wellenform in der Menüleiste. Ein kleiner Punk
 ## Bedienung
 
 - **⌘⇧Y** öffnet und schließt den Player global, auch während du in einer anderen App arbeitest. Beim Schließen per Hotkey geht der Fokus zurück zur vorherigen App. Die Wiedergabe läuft dabei weiter.
-- Der Größenumschalter unten wechselt zwischen **Standard** (448 Punkte breit) und **Mini** (192 Punkte breit). Mini zeigt nur das Video und den Umschalter zurück; die Wiedergabe läuft beim Größenwechsel weiter. Die gewählte Größe wird lokal gespeichert, bestehende Bibliotheken beginnen mit Standard.
+- Der Größenumschalter unten wechselt zwischen **Standard** (448 × 252 Punkte Video), **Mittel** (320 × 180) und **Mini** (192 × 108). Mini zeigt nur das Video und die untere Leiste. Die Wiedergabe läuft beim Größenwechsel weiter; die gewählte Größe wird lokal gespeichert und gilt auch für das Pop-out-Fenster.
+- Über das Pop-out-Symbol unten links lässt sich das Video in ein randloses Fenster im Vordergrund auskoppeln. Es weicht der Maus zwischen **unten rechts → mittig rechts → oben rechts → mittig rechts → unten rechts** aus und überspringt belegte Zielpositionen. Dock und Menüleiste werden berücksichtigt; Mausklicks gehen durch das Fenster an die Arbeits-App darunter.
+- Zum Bedienen oder Zurückholen das Menüleisten-Icon bzw. **⌘⇧Y** verwenden. Dort lässt sich auch die Größe des ausgekoppelten Videos ändern. Play/Pause und der nächste Titel bleiben über das Rechtsklick-Menü erreichbar. Nach einem App-Neustart ist der Pop-out-Modus zunächst aus.
 - YouTube-Link einfügen und mit **+** zur Warteschlange hinzufügen. Enter fügt den Titel hinzu und startet ihn direkt.
 - Beim Öffnen wird die Zwischenablage einmalig auf einen YouTube-Link geprüft. Das Häkchen übernimmt ihn in die Warteschlange, das X verwirft den Vorschlag bis zum nächsten Kopieren. Ohne Bestätigung wird nichts hinzugefügt oder gestartet. Es gibt keine Hintergrundüberwachung der Zwischenablage.
 - Die üblichen Mac-Tastenkürzel wie `⌘V`, `⌘C`, `⌘X`, `⌘A` und `⌘Z` funktionieren im Linkfeld.

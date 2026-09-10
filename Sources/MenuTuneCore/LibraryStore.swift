@@ -2,10 +2,17 @@ import Foundation
 
 public enum PlayerSize: String, Codable, CaseIterable, Sendable {
     case standard
+    case medium
     case mini
 
     // Whole-point 16:9 dimensions avoid fractional edges in the embedded view.
-    public var width: Double { self == .standard ? 448 : 192 }
+    public var width: Double {
+        switch self {
+        case .standard: return 448
+        case .medium: return 320
+        case .mini: return 192
+        }
+    }
     public var videoHeight: Double { width * 9 / 16 }
 }
 

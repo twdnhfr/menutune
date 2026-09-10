@@ -13,7 +13,7 @@ struct PlayerView: View {
             video
                 .frame(width: playerWidth, height: playerHeight)
 
-            if model.playerSize == .standard {
+            if model.playerSize != .mini {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 12) {
                         if model.errorMessage != nil || model.storageWarning != nil || model.shortcutWarning != nil { inlineNotices }
@@ -40,7 +40,7 @@ struct PlayerView: View {
     }
 
     private var playerHeight: CGFloat {
-        CGFloat(model.playerSize.videoHeight)
+        CGFloat(model.embeddedVideoHeight)
     }
 
     private var inlineNotices: some View {
@@ -100,14 +100,24 @@ struct PlayerView: View {
     }
 
     private var video: some View {
-        YouTubeWebView(webView: model.player.webView)
+        YouTubeWebView(webView: model.player.webView, isActive: !model.isPoppedOut)
             .frame(width: playerWidth, height: playerHeight)
             .background(Color.black)
             .overlay {
-                if model.queue.currentItem == nil {
+                if model.isPoppedOut {
+                    Button {
+                        model.onTogglePopOut?()
+                    } label: {
+                        Label("Video zurückholen", systemImage: "pip.exit")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Video zurück in die Menüleiste holen")
+                } else if model.queue.currentItem == nil {
                     if model.playerSize == .mini {
                         Button {
-                            model.togglePlayerSize()
+                            model.playerSize = .standard
                         } label: {
                             Label("Standardansicht öffnen", systemImage: "arrow.up.left.and.arrow.down.right")
                                 .font(.caption.weight(.medium))
@@ -356,9 +366,19 @@ struct PlayerView: View {
 
     private var bottomBar: some View {
         HStack(spacing: 6) {
+            Button {
+                model.onTogglePopOut?()
+            } label: {
+                Image(systemName: model.isPoppedOut ? "pip.exit" : "pip.enter")
+                    .font(.system(size: 12))
+                    .frame(width: 26, height: 26)
+            }
+            .buttonStyle(.borderless)
+            .help(model.isPoppedOut ? "Video zurückholen" : "Video auskoppeln – weicht der Maus aus")
+            .accessibilityLabel(model.isPoppedOut ? "Video zurückholen" : "Video auskoppeln")
+            .disabled(model.currentItem == nil)
             Spacer()
             playerSizeControl
-            if model.playerSize == .mini { Spacer() }
         }
         .padding(.horizontal, 7)
         .frame(height: 32)
@@ -368,10 +388,13 @@ struct PlayerView: View {
     private var playerSizeControl: some View {
         HStack(spacing: 0) {
             sizeButton("Standard", isSelected: model.playerSize == .standard) {
-                if model.playerSize == .mini { model.togglePlayerSize() }
+                model.playerSize = .standard
+            }
+            sizeButton("Mittel", isSelected: model.playerSize == .medium) {
+                model.playerSize = .medium
             }
             sizeButton("Mini", isSelected: model.playerSize == .mini) {
-                if model.playerSize == .standard { model.togglePlayerSize() }
+                model.playerSize = .mini
             }
         }
         .padding(2)
@@ -412,16 +435,4 @@ struct PlayerView: View {
         while model.queue.repeatMode != mode { model.cycleRepeat() }
     }
 
-}
-
-private struct YouTubeWebView: NSViewRepresentable {
-    let webView: WKWebView
-
-    func makeNSView(context: Context) -> WKWebView {
-        webView
-    }
-
-    func updateNSView(_ nsView: WKWebView, context: Context) {
-        // The player owns this web view. Reusing it preserves playback across redraws.
-    }
 }

@@ -17,6 +17,7 @@ final class AppModel: ObservableObject {
     @Published var storageWarning: String?
     @Published var shortcutWarning: String?
     @Published var clipboardSuggestion: String?
+    @Published var isPoppedOut = false
     @Published var playerSize: PlayerSize {
         didSet { save() }
     }
@@ -33,7 +34,9 @@ final class AppModel: ObservableObject {
     }
     let player = YouTubePlayer()
     var onCollapse: (() -> Void)?
+    var onTogglePopOut: (() -> Void)?
     var currentItem: QueueItem? { queue.currentItem }
+    var embeddedVideoHeight: Double { isPoppedOut ? 56 : playerSize.videoHeight }
     private let store: LibraryStore
     private var canSave = true
     private var ready = false
@@ -315,10 +318,6 @@ final class AppModel: ObservableObject {
         playbackIndicator = .idle
         errorMessage = message
         statusText = "Wiedergabe unterbrochen"
-    }
-
-    func togglePlayerSize() {
-        playerSize = playerSize == .standard ? .mini : .standard
     }
 
     private func save() {

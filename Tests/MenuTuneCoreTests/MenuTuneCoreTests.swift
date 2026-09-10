@@ -100,9 +100,11 @@ final class LibraryStoreTests: XCTestCase {
         var queue = PlaybackQueue()
         let item = queue.append(videoID: "aaaaaaaaaaa")
         _ = queue.select(item.id)
-        let snapshot = LibrarySnapshot(queue: queue, volume: 0.3, playerSize: .mini)
-        try store.save(snapshot)
-        XCTAssertEqual(try store.load(), snapshot)
+        for size in PlayerSize.allCases {
+            let snapshot = LibrarySnapshot(queue: queue, volume: 0.3, playerSize: size)
+            try store.save(snapshot)
+            XCTAssertEqual(try store.load(), snapshot)
+        }
 
         var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: store.fileURL)) as? [String: Any])
         legacy.removeValue(forKey: "playerSize")

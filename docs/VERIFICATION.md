@@ -4,9 +4,11 @@ Stand: 10. September 2026, lokal auf Apple Silicon mit macOS 26.6.2. Mindestziel
 
 ## Automatisierte Tests
 
-`swift test`: **9 Tests, 0 Fehler**.
+`swift test`: **17 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026).
 
 Geprüft werden URL- und Zeitparameter, erlaubte Hosts, Clipboard-URL-Erkennung, Queue-Navigation und Wiederholung, Entfernen/Verschieben, atomare Speicherung und Umgang mit beschädigten Dateien. Ein zusätzlicher Test verwendet das echte AppModel mit einem privaten, benannten Pasteboard und einer temporären Bibliothek: Lesen allein verändert keine Wiedergabe/Queue, Bestätigung fügt genau einmal hinzu, Verwerfen bleibt für denselben Clipboard-Stand wirksam, neuer Clipboard-Inhalt wird neu geprüft. Die allgemeine Zwischenablage wird im Test nicht verändert.
+
+Sieben weitere Tests prüfen die Ausweichlogik bei Annäherung, die Reihenfolge sicherer Ziele, stationäre Maus, Cooldown, fehlende sichere Ziele und negative Bildschirmkoordinaten. Ein Regressionstest prüft das Pendeln über die Mitte in beiden Richtungen (unten → Mitte → oben → Mitte → unten). Ein Host-Test stellt sicher, dass ein verspätetes Entfernen aus dem alten SwiftUI-Container die bereits ins schwebende Fenster verschobene WebView nicht entfernt. Der Speichertest deckt alle drei Größen sowie ältere Bibliotheken ohne Größenangabe ab.
 
 ## Test am echten YouTube-Player
 
@@ -45,6 +47,7 @@ Der Test wertet YouTubes Zustandsmeldungen und Fortschritt aus. WebKits Medienst
 - Mini auf Wunsch auf 192 × 108 Punkte für das Video vergrößert; ganzzahlige Abmessungen ersetzen die ursprüngliche Drittelbreite. Die aktualisierte Ansicht wurde erneut visuell geprüft.
 - YouTube-Link über das native Clipboard-Paste eingefügt: Eingabefeld enthält anschließend den vollständigen Link, Plus-Schaltfläche wird aktiv.
 - `⌘A` und Löschen im Eingabefeld praktisch geprüft.
+- Pop-out am 11.09.2026 visuell geprüft: rahmenloses Video im schwebenden Fenster. Die neue mittlere Größe (320 × 180 Punkte) wurde in der laufenden App bestätigt; `medium` steht anschließend in der lokalen Bibliothek. Vollbild-Spaces und ein Wechsel zwischen mehreren Monitoren wurden nicht praktisch geprüft.
 - Der Build erstellt ein ad-hoc signiertes Bundle; `codesign --verify --strict` besteht.
 
 Die Erkennung/Bestätigung aus der Zwischenablage wurde nach dem Wiedergabetest ergänzt und durch den vollständigen Testlauf geprüft. Ein Langzeittest über mehrere Stunden, sämtliche YouTube-Videoarten und ältere macOS-Versionen sind nicht abgedeckt.
