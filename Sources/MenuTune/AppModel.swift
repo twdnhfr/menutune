@@ -15,7 +15,11 @@ final class AppModel: ObservableObject {
     @Published var duration: Double = 0
     @Published var errorMessage: String?
     @Published var storageWarning: String?
+    @Published var shortcutWarning: String?
     @Published var clipboardSuggestion: String?
+    @Published var playerSize: PlayerSize {
+        didSet { save() }
+    }
     @Published var volume: Double {
         didSet {
             player.command("volume", arguments: [volume])
@@ -55,6 +59,7 @@ final class AppModel: ObservableObject {
         catch { loadError = error.localizedDescription }
         queue = snapshot.queue
         volume = snapshot.volume
+        playerSize = snapshot.playerSize
         if let loadError {
             canSave = false
             storageWarning = "Die gespeicherte Liste konnte nicht gelesen werden. Sie bleibt unverändert; neue Änderungen werden vorerst nicht gespeichert. \(loadError)"
@@ -312,9 +317,13 @@ final class AppModel: ObservableObject {
         statusText = "Wiedergabe unterbrochen"
     }
 
+    func togglePlayerSize() {
+        playerSize = playerSize == .standard ? .mini : .standard
+    }
+
     private func save() {
         guard canSave else { return }
-        do { try store.save(LibrarySnapshot(queue: queue, volume: volume)); storageWarning = nil }
+        do { try store.save(LibrarySnapshot(queue: queue, volume: volume, playerSize: playerSize)); storageWarning = nil }
         catch { storageWarning = "Deine Liste konnte nicht gespeichert werden: \(error.localizedDescription)" }
     }
 

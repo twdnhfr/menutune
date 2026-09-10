@@ -10,6 +10,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private var subscription: AnyCancellable?
     private var clickMonitor: Any?
     private var appearanceObservation: NSKeyValueObservation?
+    private var hotKey: GlobalHotKey?
+    private var previousApplication: NSRunningApplication?
     var isShown: Bool { popover.isShown }
     var onDidShow: (() -> Void)?
 
@@ -25,7 +27,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popover.contentSize = NSSize(width: 448, height: 580)
         let content = NSHostingController(rootView: PlayerView(model: model))
         popover.contentViewController = content
-        model.onCollapse = { [weak self] in self?.hide() }
+        model.onCollapse = { [weak self] in self?.hide(restoreFocus: true) }
         if let button = item.button {
             appearanceObservation = button.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
                 DispatchQueue.main.async { self?.refresh() }
@@ -35,6 +37,12 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             DispatchQueue.main.async { self?.refresh() }
         }
         refresh()
+        hotKey = GlobalHotKey(action: { [weak self] in
+            self?.toggle()
+        }, onError: { [weak model] message in
+            model?.shortcutWarning = message
+        })
+        hotKey?.register()
     }
 
     @objc private func clicked() {
@@ -54,12 +62,18 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             menu.addItem(quit)
             hide()
             if let button = item.button { menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.minY), in: button) }
-        } else if popover.isShown { hide() }
+        } else { toggle() }
+    }
+
+    func toggle() {
+        if popover.isShown { hide(restoreFocus: true) }
         else { show() }
     }
 
     func show() {
         guard !popover.isShown, let button = item.button else { return }
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        previousApplication = frontmost?.processIdentifier == ProcessInfo.processInfo.processIdentifier ? nil : frontmost
         resize()
         NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -70,9 +84,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         }
     }
 
-    func hide() {
+    func hide(restoreFocus: Bool = false) {
+        let shouldRestore = restoreFocus && NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
         popover.performClose(nil)
         removeMonitor()
+        if shouldRestore { previousApplication?.activate(options: []) }
         // Intentionally keep both the hosting controller and WKWebView alive.
     }
 
@@ -97,7 +113,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         let dark = item.button?.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
         item.button?.image = Self.icon(indicator: model.playbackIndicator, dark: dark)
         let title = model.currentItem?.title ?? "MenuTune"
-        item.button?.toolTip = "\(title) · \(model.statusText)"
+        item.button?.toolTip = "\(title) · \(model.statusText) · ⌘⇧Y"
         item.button?.setAccessibilityLabel("MenuTune: \(model.statusText)")
     }
 
@@ -125,12 +141,18 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     private func resize() {
+        if model.playerSize == .mini {
+            let size = NSSize(width: model.playerSize.width, height: model.playerSize.videoHeight + 32)
+            if popover.contentSize != size { popover.contentSize = size }
+            return
+        }
         let available = item.button?.window?.screen?.visibleFrame.height ?? 800
         let queueHeight = model.queue.items.isEmpty ? 65 : min(150, Double(model.queue.items.count) * 42)
         let noticeHeight = (model.errorMessage == nil ? 0.0 : 80.0) + (model.storageWarning == nil ? 0.0 : 80.0)
             + (model.clipboardSuggestion == nil ? 0.0 : 40.0)
-        let height = min(available - 30, 414 + queueHeight + noticeHeight)
-        let size = NSSize(width: 448, height: max(400, height))
+            + (model.shortcutWarning == nil ? 0.0 : 60.0)
+        let height = min(available - 30, 446 + queueHeight + noticeHeight)
+        let size = NSSize(width: model.playerSize.width, height: max(400, height))
         if popover.contentSize != size { popover.contentSize = size }
     }
 
@@ -139,6 +161,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     @objc private func quitApp() { NSApp.terminate(nil) }
 
     func shutdown() {
+        hotKey?.unregister()
+        hotKey = nil
         hide()
         subscription?.cancel()
         appearanceObservation?.invalidate()

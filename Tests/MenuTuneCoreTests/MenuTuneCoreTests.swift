@@ -93,6 +93,26 @@ final class PlaybackQueueTests: XCTestCase {
 }
 
 final class LibraryStoreTests: XCTestCase {
+    func testPlayerSizePersistenceAndLegacyLibrary() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = LibraryStore(fileURL: directory.appendingPathComponent("library.json"))
+        var queue = PlaybackQueue()
+        let item = queue.append(videoID: "aaaaaaaaaaa")
+        _ = queue.select(item.id)
+        let snapshot = LibrarySnapshot(queue: queue, volume: 0.3, playerSize: .mini)
+        try store.save(snapshot)
+        XCTAssertEqual(try store.load(), snapshot)
+
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: store.fileURL)) as? [String: Any])
+        legacy.removeValue(forKey: "playerSize")
+        try JSONSerialization.data(withJSONObject: legacy).write(to: store.fileURL)
+        let restored = try store.load()
+        XCTAssertEqual(restored.playerSize, .standard)
+        XCTAssertEqual(restored.queue, queue)
+        XCTAssertEqual(restored.volume, 0.3)
+    }
+
     func testRoundTripMissingAndCorrupt() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let url = directory.appendingPathComponent("nested/library.json")

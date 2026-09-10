@@ -4,7 +4,7 @@ Stand: 10. September 2026, lokal auf Apple Silicon mit macOS 26.6.2. Mindestziel
 
 ## Automatisierte Tests
 
-`swift test`: **8 Tests, 0 Fehler**.
+`swift test`: **9 Tests, 0 Fehler**.
 
 Geprüft werden URL- und Zeitparameter, erlaubte Hosts, Clipboard-URL-Erkennung, Queue-Navigation und Wiederholung, Entfernen/Verschieben, atomare Speicherung und Umgang mit beschädigten Dateien. Ein zusätzlicher Test verwendet das echte AppModel mit einem privaten, benannten Pasteboard und einer temporären Bibliothek: Lesen allein verändert keine Wiedergabe/Queue, Bestätigung fügt genau einmal hinzu, Verwerfen bleibt für denselben Clipboard-Stand wirksam, neuer Clipboard-Inhalt wird neu geprüft. Die allgemeine Zwischenablage wird im Test nicht verändert.
 
@@ -40,6 +40,9 @@ Der Test wertet YouTubes Zustandsmeldungen und Fortschritt aus. WebKits Medienst
 - Video nutzt die gesamte Breite am oberen Rand; separate Wiedergaberegler entfernt.
 - Titelaktionen sind allein über den nativen Menüpfeil erreichbar; Öffnen des Menüs praktisch geprüft.
 - Normaler Neustart erhält beide gespeicherten Titel, zeigt das ausgewählte Video ohne Autoplay und erlaubt den direkten Start über den eingebetteten Player.
+- Globaler Hotkey `⌘⇧Y` zum Öffnen/Schließen ergänzt. Der Nutzer hat die Funktion am 10.09.2026 mit seiner Tastatur ausdrücklich bestätigt. Hotkey-Verhalten wird nicht separat automatisiert abgedeckt.
+- Standard- und Mini-Ansicht visuell geprüft; Hin- und Rückwechsel am laufenden Video geprüft. Die Mini-Auswahl steht anschließend tatsächlich in der lokalen Bibliothek. Ein zusätzlicher Test prüft Größenpersistenz und Migration bestehender Bibliotheken mit Erhalt von Queue und Lautstärke.
+- Mini auf Wunsch auf 192 × 108 Punkte für das Video vergrößert; ganzzahlige Abmessungen ersetzen die ursprüngliche Drittelbreite. Die aktualisierte Ansicht wurde erneut visuell geprüft.
 - YouTube-Link über das native Clipboard-Paste eingefügt: Eingabefeld enthält anschließend den vollständigen Link, Plus-Schaltfläche wird aktiv.
 - `⌘A` und Löschen im Eingabefeld praktisch geprüft.
 - Der Build erstellt ein ad-hoc signiertes Bundle; `codesign --verify --strict` besteht.

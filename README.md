@@ -15,6 +15,8 @@ MenuTune erscheint dauerhaft als Wellenform in der Menüleiste. Ein kleiner Punk
 
 ## Bedienung
 
+- **⌘⇧Y** öffnet und schließt den Player global, auch während du in einer anderen App arbeitest. Beim Schließen per Hotkey geht der Fokus zurück zur vorherigen App. Die Wiedergabe läuft dabei weiter.
+- Der Größenumschalter unten wechselt zwischen **Standard** (448 Punkte breit) und **Mini** (192 Punkte breit). Mini zeigt nur das Video und den Umschalter zurück; die Wiedergabe läuft beim Größenwechsel weiter. Die gewählte Größe wird lokal gespeichert, bestehende Bibliotheken beginnen mit Standard.
 - YouTube-Link einfügen und mit **+** zur Warteschlange hinzufügen. Enter fügt den Titel hinzu und startet ihn direkt.
 - Beim Öffnen wird die Zwischenablage einmalig auf einen YouTube-Link geprüft. Das Häkchen übernimmt ihn in die Warteschlange, das X verwirft den Vorschlag bis zum nächsten Kopieren. Ohne Bestätigung wird nichts hinzugefügt oder gestartet. Es gibt keine Hintergrundüberwachung der Zwischenablage.
 - Die üblichen Mac-Tastenkürzel wie `⌘V`, `⌘C`, `⌘X`, `⌘A` und `⌘Z` funktionieren im Linkfeld.

@@ -1,18 +1,30 @@
 import Foundation
 
+public enum PlayerSize: String, Codable, CaseIterable, Sendable {
+    case standard
+    case mini
+
+    // Whole-point 16:9 dimensions avoid fractional edges in the embedded view.
+    public var width: Double { self == .standard ? 448 : 192 }
+    public var videoHeight: Double { width * 9 / 16 }
+}
+
 public struct LibrarySnapshot: Codable, Equatable, Sendable {
     public var queue: PlaybackQueue
     public var volume: Double
+    public var playerSize: PlayerSize
 
-    public init(queue: PlaybackQueue = PlaybackQueue(), volume: Double = 0.65) {
+    public init(queue: PlaybackQueue = PlaybackQueue(), volume: Double = 0.65, playerSize: PlayerSize = .standard) {
         self.queue = queue
         self.volume = Self.clampedVolume(volume)
+        self.playerSize = playerSize
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         queue = try container.decode(PlaybackQueue.self, forKey: .queue)
         volume = Self.clampedVolume(try container.decodeIfPresent(Double.self, forKey: .volume) ?? 0.65)
+        playerSize = PlayerSize(rawValue: try container.decodeIfPresent(String.self, forKey: .playerSize) ?? "") ?? .standard
     }
 
     private static func clampedVolume(_ volume: Double) -> Double {

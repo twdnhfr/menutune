@@ -11,24 +11,36 @@ struct PlayerView: View {
     var body: some View {
         VStack(spacing: 0) {
             video
-                .frame(width: 448, height: 252)
+                .frame(width: playerWidth, height: playerHeight)
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 12) {
-                    if model.errorMessage != nil || model.storageWarning != nil { inlineNotices }
-                    titleRow
-                    if model.clipboardSuggestion != nil { clipboardSuggestionRow }
-                    addBar
-                    queue
-                    footer
+            if model.playerSize == .standard {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 12) {
+                        if model.errorMessage != nil || model.storageWarning != nil || model.shortcutWarning != nil { inlineNotices }
+                        titleRow
+                        if model.clipboardSuggestion != nil { clipboardSuggestionRow }
+                        addBar
+                        queue
+                        footer
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
             }
+
+            bottomBar
         }
-        .frame(width: 448)
+        .frame(width: playerWidth)
         .background(.regularMaterial)
         .tint(purple)
+    }
+
+    private var playerWidth: CGFloat {
+        CGFloat(model.playerSize.width)
+    }
+
+    private var playerHeight: CGFloat {
+        CGFloat(model.playerSize.videoHeight)
     }
 
     private var inlineNotices: some View {
@@ -75,24 +87,46 @@ struct PlayerView: View {
                 .padding(9)
                 .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
             }
+
+            if let shortcutWarning = model.shortcutWarning {
+                Label(shortcutWarning, systemImage: "keyboard")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(9)
+                    .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 8))
+            }
         }
     }
 
     private var video: some View {
         YouTubeWebView(webView: model.player.webView)
-            .frame(width: 448, height: 252)
+            .frame(width: playerWidth, height: playerHeight)
             .background(Color.black)
             .overlay {
                 if model.queue.currentItem == nil {
-                    VStack(spacing: 8) {
-                        Image(systemName: "play.rectangle.fill")
-                            .font(.title2)
-                            .foregroundStyle(.white.opacity(0.7))
-                        Text("Füge einen YouTube-Link hinzu")
-                            .font(.callout.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.82))
+                    if model.playerSize == .mini {
+                        Button {
+                            model.togglePlayerSize()
+                        } label: {
+                            Label("Standardansicht öffnen", systemImage: "arrow.up.left.and.arrow.down.right")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.88))
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Standardansicht öffnen")
+                        .shadow(radius: 4)
+                    } else {
+                        VStack(spacing: 8) {
+                            Image(systemName: "play.rectangle.fill")
+                                .font(.title2)
+                                .foregroundStyle(.white.opacity(0.7))
+                            Text("Füge einen YouTube-Link hinzu")
+                                .font(.callout.weight(.medium))
+                                .foregroundStyle(.white.opacity(0.82))
+                        }
+                        .shadow(radius: 4)
                     }
-                    .shadow(radius: 4)
                 }
             }
             .accessibilityLabel("YouTube-Player")
@@ -133,7 +167,7 @@ struct PlayerView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.borderless)
-            .help("Menü schließen")
+            .help("Menü schließen (⌘⇧Y)")
             .accessibilityLabel("Menü schließen")
         }
     }
@@ -318,6 +352,48 @@ struct PlayerView: View {
             .buttonStyle(.borderless)
         }
         .foregroundStyle(.secondary)
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 6) {
+            Spacer()
+            playerSizeControl
+            if model.playerSize == .mini { Spacer() }
+        }
+        .padding(.horizontal, 7)
+        .frame(height: 32)
+        .background(.regularMaterial)
+    }
+
+    private var playerSizeControl: some View {
+        HStack(spacing: 0) {
+            sizeButton("Standard", isSelected: model.playerSize == .standard) {
+                if model.playerSize == .mini { model.togglePlayerSize() }
+            }
+            sizeButton("Mini", isSelected: model.playerSize == .mini) {
+                if model.playerSize == .standard { model.togglePlayerSize() }
+            }
+        }
+        .padding(2)
+        .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Playergröße")
+    }
+
+    private func sizeButton(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption2.weight(isSelected ? .semibold : .regular))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .frame(minWidth: 39)
+                .background(isSelected ? purple.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 3))
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(isSelected ? .primary : .secondary)
+        .disabled(isSelected)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var repeatIcon: String {
