@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <style>html,body{margin:0;width:100%;height:100%;background:#141419;overflow:hidden}#player{width:100%;height:100%}</style>
+</head>
+<body>
+  <div id="player"></div>
+  <script>
+  'use strict';
+  let player, active = null, ready = false, endedToken = null;
+  function send(kind, extra = {}) {
+    window.webkit.messageHandlers.menuTune.postMessage(Object.assign({kind, token: active?.token ?? ''}, extra));
+  }
+  function videoID() {
+    try { return new URL(player.getVideoUrl()).searchParams.get('v'); } catch (_) { return null; }
+  }
+  function progress() {
+    if (!ready || !active || videoID() !== active.videoID) return;
+    send('progress', {time:player.getCurrentTime(), duration:player.getDuration(), state:player.getPlayerState(), volume:player.getVolume()/100});
+  }
+  window.mt = {
+    load(request) {
+      active = request;
+      endedToken = null;
+      if (!ready) return;
+      player.setVolume(request.volume * 100);
+      player.loadVideoById({videoId:request.videoID, startSeconds:request.startSeconds || 0});
+    },
+    cue(request) {
+      active = request;
+      endedToken = null;
+      if (!ready) return;
+      player.setVolume(request.volume * 100);
+      player.cueVideoById({videoId:request.videoID, startSeconds:0});
+    },
+    play() { if (ready) player.playVideo(); },
+    pause() { if (ready) player.pauseVideo(); },
+    stop() { active = null; if (ready) player.stopVideo(); },
+    volume(value) { if (ready) player.setVolume(value * 100); },
+    seek(value) { if (ready) player.seekTo(value, true); }
+  };
+  window.onYouTubeIframeAPIReady = () => {
+    player = new YT.Player('player', {
+      width:'100%', height:'100%',
+      playerVars:{playsinline:1, controls:1, autoplay:0, origin:'https://de.wdnhfr.menutune', hl:'de'},
+      events:{
+        onReady() { ready = true; send('ready'); if (active) window.mt.load(active); },
+        onStateChange(event) {
+          if (!active || videoID() !== active.videoID) return;
+          if (event.data === 1) endedToken = null;
+          if (event.data === 0) {
+            if (endedToken === active.token) return;
+            endedToken = active.token;
+          }
+          send('state', {state:event.data}); progress();
+        },
+        onError(event) { send('error', {code:event.data}); },
+        onAutoplayBlocked() { send('blocked'); }
+      }
+    });
+  };
+  setInterval(progress, 500);
+  </script>
+  <script src="https://www.youtube.com/iframe_api" onerror="send('networkError')"></script>
+</body>
+</html>
