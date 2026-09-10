@@ -5,6 +5,7 @@
     <key>CFBundleDisplayName</key><string>MenuTune</string>
     <key>CFBundleIdentifier</key><string>de.wdnhfr.menutune</string>
     <key>CFBundleExecutable</key><string>MenuTune</string>
+    <key>CFBundleIconFile</key><string>MenuTune</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
     <key>CFBundleVersion</key><string>1</string>
