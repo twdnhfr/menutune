@@ -41,8 +41,25 @@ public struct PlaybackQueue: Codable, Equatable, Sendable {
     /// failing the whole load, which would block saving for the session.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        items = try container.decodeIfPresent([QueueItem].self, forKey: .items) ?? []
-        currentItemID = try container.decodeIfPresent(UUID.self, forKey: .currentItemID)
+        // A library written before entries were unique, or edited by hand, can
+        // still hold duplicates; the first occurrence wins.
+        let stored = try container.decodeIfPresent([QueueItem].self, forKey: .items) ?? []
+        var seen = Set<String>()
+        // Locals throughout: a closure may not capture a property this
+        // initialiser has not assigned yet.
+        let unique = stored.filter { seen.insert($0.videoID).inserted }
+        items = unique
+
+        let storedCurrent = try container.decodeIfPresent(UUID.self, forKey: .currentItemID)
+        if let storedCurrent, !unique.contains(where: { $0.id == storedCurrent }) {
+            // The selection pointed at a copy that just collapsed into another.
+            let droppedVideoID = stored.first(where: { $0.id == storedCurrent })?.videoID
+            currentItemID = droppedVideoID.flatMap { videoID in
+                unique.first(where: { $0.videoID == videoID })?.id
+            }
+        } else {
+            currentItemID = storedCurrent
+        }
         repeatMode = RepeatMode(rawValue: try container.decodeIfPresent(String.self, forKey: .repeatMode) ?? "") ?? .off
     }
 
@@ -51,8 +68,16 @@ public struct PlaybackQueue: Codable, Equatable, Sendable {
         return items.first { $0.id == currentItemID }
     }
 
+    public func contains(videoID: String) -> Bool {
+        items.contains { $0.videoID == videoID }
+    }
+
+    /// Entries are unique per video. Adding one that is already queued returns
+    /// the existing entry, keeping its title and position, instead of making a
+    /// second copy of the same thing.
     @discardableResult
     public mutating func append(videoID: String, title: String? = nil) -> QueueItem {
+        if let existing = items.first(where: { $0.videoID == videoID }) { return existing }
         let item = QueueItem(videoID: videoID, title: title)
         items.append(item)
         return item

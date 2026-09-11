@@ -63,7 +63,7 @@ final class PlaybackQueueTests: XCTestCase {
         var queue = PlaybackQueue()
         let first = queue.append(videoID: "aaaaaaaaaaa", title: "A")
         let second = queue.append(videoID: "bbbbbbbbbbb", title: "B")
-        let third = queue.append(videoID: "aaaaaaaaaaa", title: "A2")
+        let third = queue.append(videoID: "ccccccccccc", title: "C")
         return (queue, first, second, third)
     }
 
@@ -82,6 +82,17 @@ final class PlaybackQueueTests: XCTestCase {
         queue.repeatMode = .one
         XCTAssertEqual(queue.next(automatic: true), third)
         XCTAssertNil(queue.next(automatic: false))
+    }
+
+    func testASecondCopyOfTheSameVideoIsNeverAdded() {
+        var queue = PlaybackQueue()
+        let first = queue.append(videoID: "aaaaaaaaaaa", title: "A")
+        let again = queue.append(videoID: "aaaaaaaaaaa", title: "Anderer Titel")
+        XCTAssertEqual(queue.items.count, 1)
+        XCTAssertEqual(again, first, "Der vorhandene Eintrag wird zurückgegeben, nicht ein neuer.")
+        XCTAssertEqual(queue.items.first?.title, "A", "Der bereits geladene Titel bleibt stehen.")
+        XCTAssertTrue(queue.contains(videoID: "aaaaaaaaaaa"))
+        XCTAssertFalse(queue.contains(videoID: "bbbbbbbbbbb"))
     }
 
     func testMovingDownAndRemovingAnotherEntry() {
@@ -127,7 +138,7 @@ final class PlaybackQueueTests: XCTestCase {
         queue.move(third.id, by: -10)
         XCTAssertEqual(queue.items.map(\.id), [third.id, first.id])
         queue.updateTitle(videoID: "aaaaaaaaaaa", title: "neu")
-        XCTAssertEqual(queue.items.map(\.title), ["neu", "neu"])
+        XCTAssertEqual(queue.items.map(\.title), ["C", "neu"])
         queue.remove(third.id)
         queue.remove(first.id)
         XCTAssertNil(queue.currentItemID)
@@ -181,6 +192,38 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(restored.queue.currentItemID, item.id)
         XCTAssertEqual(restored.playerSize, .mini)
         XCTAssertTrue(restored.queueExpanded)
+    }
+
+    func testAnOlderLibraryWithDuplicatesCollapsesOnLoad() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("library.json")
+        let store = LibraryStore(fileURL: url)
+
+        // Written the way earlier versions could, with the selection on the copy.
+        let keptID = UUID(), droppedID = UUID(), otherID = UUID()
+        let raw: [String: Any] = [
+            "volume": 0.5,
+            "playerSize": "standard",
+            "queue": [
+                "repeatMode": "all",
+                "currentItemID": droppedID.uuidString,
+                "items": [
+                    ["id": keptID.uuidString, "videoID": "aaaaaaaaaaa", "title": "A"],
+                    ["id": otherID.uuidString, "videoID": "bbbbbbbbbbb", "title": "B"],
+                    ["id": droppedID.uuidString, "videoID": "aaaaaaaaaaa", "title": "A nochmal"]
+                ]
+            ]
+        ]
+        try JSONSerialization.data(withJSONObject: raw).write(to: url)
+
+        let restored = try store.load()
+        XCTAssertEqual(restored.queue.items.map(\.videoID), ["aaaaaaaaaaa", "bbbbbbbbbbb"])
+        XCTAssertEqual(restored.queue.items.map(\.title), ["A", "B"], "Die erste Fassung gewinnt.")
+        XCTAssertEqual(restored.queue.currentItemID, keptID,
+                       "Die Auswahl zeigte auf die entfernte Kopie und muss auf die verbliebene zeigen.")
+        XCTAssertEqual(restored.queue.repeatMode, .all)
     }
 
     func testRoundTripMissingAndCorrupt() throws {

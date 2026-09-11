@@ -1,4 +1,5 @@
 import AppKit
+import MenuTuneCore
 
 /// Opt-in live verification, launched only with --smoke-test and --play-url.
 /// Writes playback evidence to stderr; never runs during normal app launches.
@@ -58,11 +59,13 @@ enum PlaybackSmokeTest {
         model.togglePlayback()
         await wait(3)
         let resumeOK = model.isPlaying && model.playbackIndicator == .playing && model.currentTime > pausedTime + 1
-        // Two entries of the user-selected video exercise an actual end event and queue handoff.
+        // The handoff at the end of a track needs a successor. Queue entries are
+        // unique, so this builds a second copy directly, which the interface
+        // would refuse, rather than depending on a second video being playable.
         var nextOK = false
         var replayOK = false
         if let first = model.currentItem, model.duration > 15 {
-            _ = model.queue.append(videoID: first.videoID, title: first.title)
+            model.queue.items.append(QueueItem(videoID: first.videoID, title: first.title))
             model.seek(to: model.duration - 4)
             status.hide()
             for _ in 0..<20 {

@@ -20,6 +20,7 @@ MenuTune erscheint dauerhaft als Wellenform in der Menüleiste. Ein kleiner Punk
 - Über das Pop-out-Symbol unten links lässt sich das Video in ein randloses Fenster im Vordergrund auskoppeln. Es weicht der Maus zwischen **unten rechts → mittig rechts → oben rechts → mittig rechts → unten rechts** aus und überspringt belegte Zielpositionen. Dock und Menüleiste werden berücksichtigt; Mausklicks gehen durch das Fenster an die Arbeits-App darunter.
 - Zum Bedienen oder Zurückholen das Menüleisten-Icon bzw. **⌘⇧Y** verwenden. Dort lässt sich auch die Größe des ausgekoppelten Videos ändern. Play/Pause und der nächste Titel bleiben über das Rechtsklick-Menü erreichbar. Nach einem App-Neustart ist der Pop-out-Modus zunächst aus.
 - YouTube-Link einfügen und mit **+** zur Warteschlange hinzufügen. Enter fügt den Titel hinzu und startet ihn direkt.
+- Jedes Video steht höchstens einmal in der Warteschlange. Ein bereits vorhandener Link legt keinen zweiten Eintrag an; die Statuszeile weist darauf hin, und mit Enter startet der vorhandene Eintrag. Ältere Listen mit Doppelungen werden beim Laden einmalig zusammengeführt, wobei der erste Eintrag samt Titel und Position bestehen bleibt.
 - Beim Öffnen wird die Zwischenablage einmalig auf einen YouTube-Link geprüft. Das Häkchen übernimmt ihn in die Warteschlange, das X verwirft den Vorschlag bis zum nächsten Kopieren. Ohne Bestätigung wird nichts hinzugefügt oder gestartet. Es gibt keine Hintergrundüberwachung der Zwischenablage.
 - Die üblichen Mac-Tastenkürzel wie `⌘V`, `⌘C`, `⌘X`, `⌘A` und `⌘Z` funktionieren im Linkfeld.
 - Links von `youtube.com`, `youtu.be`, YouTube Music, Shorts, Live und Embed werden unterstützt; beim direkten Start wird ein Zeitparameter wie `t=3s` berücksichtigt.
@@ -50,7 +51,7 @@ swift test
 bash scripts/build-app.sh
 ```
 
-Ein optionaler Test am echten Player protokolliert die Wiedergabe bei sichtbarem/geschlossenem Menü, Pause/Fortsetzen, einen automatischen Titelwechsel, Replay direkt im Embed und Wiederherstellung nach simulierten Lade-/Prozessfehlern. Er verwendet die übergebene Testbibliothek und lädt das Video zweimal in die Warteschlange; er startet ausschließlich mit diesen Argumenten:
+Ein optionaler Test am echten Player protokolliert die Wiedergabe bei sichtbarem/geschlossenem Menü, Pause/Fortsetzen, einen automatischen Titelwechsel, Replay direkt im Embed und Wiederherstellung nach simulierten Lade-/Prozessfehlern. Er verwendet die übergebene Testbibliothek und legt darin für den Titelwechsel bewusst eine zweite Kopie desselben Videos an, die die Oberfläche selbst nicht zulässt. Ohne `--library` startet er nicht, damit deine echte Liste unberührt bleibt. Er startet ausschließlich mit diesen Argumenten:
 
 ```sh
 build/MenuTune.app/Contents/MacOS/MenuTune \

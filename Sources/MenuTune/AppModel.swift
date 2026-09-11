@@ -95,14 +95,18 @@ final class AppModel: ObservableObject {
         do {
             let id = try YouTubeLink.videoID(from: input)
             let start = YouTubeLink.startSeconds(from: input)
-            // A second copy of a known video keeps the title already fetched.
-            let knownTitle = queue.items.first(where: { $0.videoID == id })?.title
-            let item = queue.append(videoID: id, title: knownTitle)
+            let alreadyQueued = queue.contains(videoID: id)
+            let item = queue.append(videoID: id)
             input = ""
             errorMessage = nil
             skippedInRow = 0
-            save()
-            fetchTitle(for: id)
+            if alreadyQueued {
+                // Nothing changed on disk, but silence would look like a dead button.
+                statusText = "Steht schon in der Warteschlange"
+            } else {
+                save()
+                fetchTitle(for: id)
+            }
             if playImmediately { play(item, startSeconds: start) }
         } catch { errorMessage = error.localizedDescription }
     }
@@ -121,11 +125,15 @@ final class AppModel: ObservableObject {
     func acceptClipboardSuggestion() {
         guard let suggestion = clipboardSuggestion,
               let videoID = try? YouTubeLink.videoID(from: suggestion) else { return }
-        let knownTitle = queue.items.first(where: { $0.videoID == videoID })?.title
-        _ = queue.append(videoID: videoID, title: knownTitle)
+        let alreadyQueued = queue.contains(videoID: videoID)
+        _ = queue.append(videoID: videoID)
         dismissClipboardSuggestion()
-        save()
-        fetchTitle(for: videoID)
+        if alreadyQueued {
+            statusText = "Steht schon in der Warteschlange"
+        } else {
+            save()
+            fetchTitle(for: videoID)
+        }
     }
 
     func dismissClipboardSuggestion() {
