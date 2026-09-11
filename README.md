@@ -63,11 +63,30 @@ Der Test wertet YouTubes Zustandsmeldungen und die Player-Zeit aus; WebKits Medi
 
 Der Test beginnt erst, wenn der Player sichtbar geöffnet ist; bei Bedarf das Menüleisten-Symbol anklicken. Die geprüften Abläufe und Grenzen sind in [docs/VERIFICATION.md](docs/VERIFICATION.md) dokumentiert.
 
+## Veröffentlichung
+
+`scripts/release.sh` erzeugt ein notarisiertes, gestapeltes Universal-DMG. Die Zugangsdaten liest das Skript nie selbst; sie werden einmalig im Schlüsselbund hinterlegt:
+
+```sh
+xcrun notarytool store-credentials menutune --apple-id <deine Apple-ID> --team-id <dein Team>
+```
+
+Danach genügt ein Aufruf. Das Skript prüft zuerst Zertifikat, sauberes Arbeitsverzeichnis und Notarisierungsprofil, bricht bei einem Problem sofort ab und baut erst danach:
+
+```sh
+bash scripts/release.sh
+```
+
+Es läuft in dieser Reihenfolge: Tests, Universal-Build für Apple Silicon und Intel, Signatur mit der Developer ID samt Hardened Runtime und Zeitstempel, Notarisierung der App mit anschließendem Stapeln, Verpacken ins Disk-Image, Signatur und Notarisierung des Images, Stapeln, Abschlussprüfung mit `spctl`. Die App bekommt ihr eigenes Ticket, damit eine aus dem Image herausgezogene Installation auch ohne Internetverbindung prüfbar bleibt. Das Ergebnis liegt unter `build/release/`.
+
+Mit `--skip-notarize` entsteht alles außer der Apple-Runde. Dieses Ergebnis weist Gatekeeper ab und gehört nicht auf eine Website; das Skript sagt das auch. Mit `--allow-dirty` lässt sich aus einem nicht eingecheckten Stand bauen. Die Build-Nummer in der App ist die Anzahl der Commits, die Versionsnummer steht in `Support/Info.plist`.
+
 ## Aufbau
 
 - `MenuTuneCore`: URL-Prüfung, Warteschlange und atomare lokale Speicherung.
 - `MenuTune`: AppKit-Menüleiste, SwiftUI-Oberfläche und WebKit-Player.
 - `Resources/player.html`: kleine Brücke zur YouTube-IFrame-API.
-- `scripts/build-app.sh`: baut ein lokal ad-hoc signiertes App-Bundle für die aktuelle Mac-Architektur.
+- `scripts/build-app.sh`: baut das App-Bundle. Ohne Argumente lokal und ad hoc signiert für die aktuelle Architektur, mit `--universal --sign` für den Release-Weg.
+- `scripts/release.sh`: der vollständige Weg bis zum veröffentlichbaren DMG.
 
 Referenzen: [YouTube IFrame API](https://developers.google.com/youtube/iframe_api_reference), [Native Embed-Identifikation](https://developers.google.com/youtube/terms/required-minimum-functionality#Set_the_Referer), [YouTube-Entwicklerbedingungen](https://developers.google.com/youtube/terms/developer-policies).

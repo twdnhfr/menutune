@@ -50,6 +50,21 @@ Am 11.09.2026 geprüft: mit verstecktem `.build`-Verzeichnis gestartet das Bundl
 
 Die Korrekturen aus dem Review vom 11.09.2026 sind **nicht** erneut gegen den echten Player geprüft worden. Der Test unten braucht eine interaktive Desktop-Sitzung; ohne sie erscheint das Popover nicht und die Testsequenz startet nicht. Betroffen sind vor allem das Überspringen gesperrter Videos, die Übernahme von im Embed gestarteten Empfehlungen und die Pause während des Ladens.
 
+## Release-Weg
+
+Am 11.09.2026 geprüft, ohne die Apple-Runde. Der Universal-Build erzeugt ein Binary mit `x86_64 arm64`. Die Signatur mit der Developer ID setzt Hardened Runtime und einen sicheren Zeitstempel; `codesign --verify --strict --deep` besteht. Wichtigster Einzelbefund: die App startet mit Hardened Runtime unverändert und der eingebettete Player meldet `ready`, es werden also **keine Entitlements gebraucht**. Das Disk-Image enthält die App und einen Link auf den Programme-Ordner und ist signiert.
+
+Die Vorprüfungen brechen beide mit Rückgabewert 1 ab, und zwar vor dem Build: unsauberes Arbeitsverzeichnis ohne `--allow-dirty`, sowie fehlendes notarytool-Profil.
+
+Die Notarisierung selbst ist **nie gelaufen**. Im Schlüsselbund liegt kein Profil. Gatekeeper urteilt über den aktuellen Stand entsprechend:
+
+```text
+rejected
+source=Unnotarized Developer ID
+```
+
+Dasselbe gilt für die älteren DMGs unter `build/production`: universal und korrekt signiert, aber unnotarisiert. Erst der Durchlauf von `scripts/release.sh` mit hinterlegten Zugangsdaten schließt diese Lücke, und erst danach ist das Ergebnis für eine Website geeignet.
+
 ## Bedienprüfung
 
 - Laufende native Oberfläche visuell geprüft.
