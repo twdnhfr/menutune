@@ -22,7 +22,7 @@ Neun Tests prüfen die Ausweichlogik insgesamt: Annäherung, Reihenfolge sichere
 
 Video: `https://www.youtube.com/watch?v=czBc1UhZ3eU&t=3s`
 
-Erfolgreicher Durchlauf vom 10.09.2026, 14:03–14:04 UTC, im lokal gebauten App-Bundle:
+Erfolgreicher Durchlauf vom 11.09.2026, 09:50–09:52 UTC, im **notarisierten Release-Bundle** und damit in genau dem Stand, der ausgeliefert wird. Er deckt auch die Korrekturen aus dem Review vom selben Tag ab:
 
 | Prüfung | Ergebnis |
 | --- | --- |
@@ -42,13 +42,17 @@ Die Abschlusszeile aus `build/playback-final-smoke.log`:
 SMOKE PASS: hidden=true pause=true resume=true automaticNext=true embeddedReplay=true recovery=true dismissedRecovery=true nativeVolume=true
 ```
 
+Sechs Stichproben bei geschlossenem Popover zeigen durchgehend `visible=false playing=true indicator=playing` mit fortlaufender Zeit. Der Statuspunkt bleibt beim Puffern jetzt erhalten, und Pause meldet `indicator=paused` statt wie früher zwischenzeitlich `idle`.
+
 Der Test wertet YouTubes Zustandsmeldungen und Fortschritt aus. WebKits Medienstatus wird zusätzlich protokolliert. Eine akustische Messung der Lautsprecher-/Kopfhörerausgabe ist nicht Teil des Tests.
 
 ## Ausgeliefertes App-Bundle
 
 Am 11.09.2026 geprüft: mit verstecktem `.build`-Verzeichnis gestartet das Bundle sauber durch und der Player meldet `ready`. Vor der Korrektur brach derselbe Versuch sofort mit `Fatal error: could not load resource bundle` ab, weil SwiftPMs `Bundle.module` nur neben der ausführbaren Datei und danach an einem fest einkompilierten Build-Pfad sucht. `codesign --verify --strict` besteht weiterhin.
 
-Die Korrekturen aus dem Review vom 11.09.2026 sind **nicht** erneut gegen den echten Player geprüft worden. Der Test unten braucht eine interaktive Desktop-Sitzung; ohne sie erscheint das Popover nicht und die Testsequenz startet nicht. Betroffen sind vor allem das Überspringen gesperrter Videos, die Übernahme von im Embed gestarteten Empfehlungen und die Pause während des Ladens.
+Der Test oben braucht eine interaktive Desktop-Sitzung. In einer nicht-interaktiven Shell erscheint das Popover nicht und die Sequenz startet gar nicht erst; das Menüleisten-Symbol muss einmal angeklickt werden.
+
+Zwei Korrekturen vom 11.09.2026 sind auch durch diesen Durchlauf **nicht** abgedeckt, weil er sie nicht auslöst: das Überspringen eines für Embeds gesperrten Videos und die Übernahme einer im Player gestarteten YouTube-Empfehlung. Beide brauchen Videomaterial, das der Test nicht verwendet.
 
 ## Release-Weg
 
