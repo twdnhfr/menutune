@@ -38,10 +38,38 @@ final class CursorAvoidanceTests: XCTestCase {
         }
     }
 
-    func testStationaryPointerDoesNotCycleAfterMove() {
+    /// Named for what it checks: after the window left, the pointer is no longer
+    /// anywhere near it, so the proximity guard alone suppresses a second move.
+    func testPointerLeftBehindTriggersNoFurtherMove() {
         var avoidance = CursorAvoidance()
         XCTAssertEqual(avoidance.nextPosition(frames: frames, pointer: CGPoint(x: 50, y: 50), now: 1), 1)
         XCTAssertNil(avoidance.nextPosition(frames: frames, pointer: CGPoint(x: 50, y: 50), now: 2))
+    }
+
+    /// The pointer is still outside the active window's safety zone, so only the
+    /// extrapolated position can trigger the move.
+    func testPredictedPositionAloneTriggersTheMove() {
+        var approaching = CursorAvoidance()
+        XCTAssertEqual(approaching.nextPosition(frames: frames, pointer: CGPoint(x: 260, y: 50),
+                                                previousPointer: CGPoint(x: 300, y: 50), now: 1), 2)
+
+        var stationary = CursorAvoidance()
+        XCTAssertNil(stationary.nextPosition(frames: frames, pointer: CGPoint(x: 260, y: 50), now: 1),
+                     "Ohne Bewegung liegt derselbe Zeiger außerhalb der Zone.")
+    }
+
+    /// Mirror image: the candidate is safe for the pointer itself and only the
+    /// extrapolated position rules it out, leaving no alternative at all.
+    func testPredictedPositionAloneRejectsACandidate() {
+        let candidates = [CGRect(x: 0, y: 0, width: 100, height: 100),
+                          CGRect(x: 300, y: 0, width: 100, height: 100)]
+        var approaching = CursorAvoidance()
+        XCTAssertNil(approaching.nextPosition(frames: candidates, pointer: CGPoint(x: 150, y: 50),
+                                              previousPointer: CGPoint(x: 100, y: 50), now: 1))
+
+        var stationary = CursorAvoidance()
+        XCTAssertEqual(stationary.nextPosition(frames: candidates, pointer: CGPoint(x: 150, y: 50), now: 1), 1,
+                       "Ohne Vorhersage ist das zweite Fenster ein sicheres Ziel.")
     }
 
     func testCooldownSuppressesImmediateSecondMove() {

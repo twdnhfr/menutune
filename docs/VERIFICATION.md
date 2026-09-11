@@ -4,15 +4,19 @@ Stand: 10. September 2026, lokal auf Apple Silicon mit macOS 26.6.2. Mindestziel
 
 ## Automatisierte Tests
 
-`swift test`: **20 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026 und Review-Korrekturen vom 11.09.2026).
+`swift test`: **26 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026 und Review-Korrekturen vom 11.09.2026).
 
 Geprüft werden URL- und Zeitparameter, erlaubte Hosts, Clipboard-URL-Erkennung, Queue-Navigation und Wiederholung, Entfernen/Verschieben, atomare Speicherung und Umgang mit beschädigten Dateien. Ein zusätzlicher Test verwendet das echte AppModel mit einem privaten, benannten Pasteboard und einer temporären Bibliothek: Lesen allein verändert keine Wiedergabe/Queue, Bestätigung fügt genau einmal hinzu, Verwerfen bleibt für denselben Clipboard-Stand wirksam, neuer Clipboard-Inhalt wird neu geprüft. Die allgemeine Zwischenablage wird im Test nicht verändert.
 
 Ein Test hängt die Oberfläche in ein echtes Fenster und prüft, dass die gemessene Inhaltshöhe dem Layout folgt und beim Aufklappen der Warteschlange wächst. Damit ist die Popover-Höhe nicht länger eine handgepflegte Kopie des Layouts.
 
-Zwei weitere Tests aus dem Review vom 11.09.2026 kamen hinzu: eine Bibliothek mit unbekanntem Wiederholungsmodus und fehlendem Titel bleibt lesbar statt den ganzen Ladevorgang scheitern zu lassen, und ein zweites Exemplar desselben Links über das Eingabefeld übernimmt den bereits geladenen Titel.
+Aus dem Review vom 11.09.2026 kamen weitere Tests hinzu. Eine Bibliothek mit unbekanntem Wiederholungsmodus und fehlendem Titel bleibt lesbar, statt den ganzen Ladevorgang scheitern zu lassen. Ein zweites Exemplar desselben Links über das Eingabefeld übernimmt den bereits geladenen Titel. Die in der README zugesagte Garantie bei beschädigter Datei wird nun auf AppModel-Ebene geprüft: Warnung gesetzt, Weiterarbeit im Speicher möglich, Datei auf der Platte byteidentisch unverändert. Beim Verschieben ist erstmals der Zweig mit positivem Versatz abgedeckt, ebenso das Entfernen eines nicht ausgewählten Titels, das Entfernen des laufenden letzten Titels, "Zurück" auf dem ersten Titel ohne Wiederholung und die leere Warteschlange. Beim Längenlimit der Zwischenablage prüft ein Fall jetzt genau die Grenze statt einer ohnehin ungültigen Zeichenkette.
 
-Sieben weitere Tests prüfen die Ausweichlogik bei Annäherung, die Reihenfolge sicherer Ziele, stationäre Maus, Cooldown, fehlende sichere Ziele und negative Bildschirmkoordinaten. Ein Regressionstest prüft das Pendeln über die Mitte in beiden Richtungen (unten → Mitte → oben → Mitte → unten). Ein Host-Test stellt sicher, dass ein verspätetes Entfernen aus dem alten SwiftUI-Container die bereits ins schwebende Fenster verschobene WebView nicht entfernt. Der Speichertest deckt alle drei Größen sowie ältere Bibliotheken ohne Größenangabe ab.
+Zwei Tests decken erstmals die Bewegungsvorhersage der Ausweichlogik ab, einmal als alleiniger Auslöser eines Wechsels und einmal als alleiniger Grund, ein Ziel zu verwerfen. Gegenprobe: wird die Vorhersage im Quelltext neutralisiert, fallen genau diese beiden Tests um, alle übrigen bleiben grün. Der frühere Test `testStationaryPointerDoesNotCycleAfterMove` hieß irreführend, er prüfte nicht den Cooldown, sondern den Abstandswächter, und heißt jetzt danach.
+
+Die Unit-Tests erreichen youtube.com nicht mehr. Bisher lud jede AppModel-Instanz die IFrame-API in eine echte WebView, und das Bestätigen aus der Zwischenablage löste einen oEmbed-Abruf aus. Beide Pfade hängen jetzt an einem Schalter im Initialisierer, den ausschließlich die Tests auf aus stellen.
+
+Neun Tests prüfen die Ausweichlogik insgesamt: Annäherung, Reihenfolge sicherer Ziele, Bewegungsvorhersage in beide Richtungen, entfernter Zeiger nach einem Wechsel, Cooldown, fehlende sichere Ziele und negative Bildschirmkoordinaten. Ein Regressionstest prüft das Pendeln über die Mitte in beiden Richtungen (unten → Mitte → oben → Mitte → unten). Ein Host-Test stellt sicher, dass ein verspätetes Entfernen aus dem alten SwiftUI-Container die bereits ins schwebende Fenster verschobene WebView nicht entfernt. Der Speichertest deckt alle drei Größen sowie ältere Bibliotheken ohne Größenangabe ab.
 
 ## Test am echten YouTube-Player
 

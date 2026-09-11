@@ -36,6 +36,13 @@ final class YouTubeLinkTests: XCTestCase {
         XCTAssertNil(YouTubeLink.clipboardURL(from: "just ordinary text"))
         XCTAssertNil(YouTubeLink.clipboardURL(from: "https://youtube.com.evil.example/watch?v=czBc1UhZ3eU"))
         XCTAssertNil(YouTubeLink.clipboardURL(from: String(repeating: "x", count: 8_193)))
+
+        // A valid link that only fails on length, so the limit itself is exercised.
+        let prefix = "https://www.youtube.com/watch?v=czBc1UhZ3eU&pad="
+        let atLimit = prefix + String(repeating: "x", count: 8_192 - prefix.utf8.count)
+        XCTAssertEqual(atLimit.utf8.count, 8_192)
+        XCTAssertEqual(YouTubeLink.clipboardURL(from: atLimit), atLimit)
+        XCTAssertNil(YouTubeLink.clipboardURL(from: atLimit + "x"))
     }
 
     func testRejectsInvalidIDsAndDeceptiveHosts() {
@@ -75,6 +82,41 @@ final class PlaybackQueueTests: XCTestCase {
         queue.repeatMode = .one
         XCTAssertEqual(queue.next(automatic: true), third)
         XCTAssertNil(queue.next(automatic: false))
+    }
+
+    func testMovingDownAndRemovingAnotherEntry() {
+        var (queue, first, second, third) = queue()
+        XCTAssertTrue(queue.select(first.id))
+
+        queue.move(first.id, by: 1)
+        XCTAssertEqual(queue.items.map(\.id), [second.id, first.id, third.id])
+        queue.move(first.id, by: 10)
+        XCTAssertEqual(queue.items.map(\.id), [second.id, third.id, first.id])
+
+        // Removing some other entry must leave the current selection alone.
+        queue.remove(third.id)
+        XCTAssertEqual(queue.items.map(\.id), [second.id, first.id])
+        XCTAssertEqual(queue.currentItemID, first.id)
+    }
+
+    func testRemovingTheCurrentLastEntryFallsBackToItsPredecessor() {
+        var (queue, first, second, third) = queue()
+        XCTAssertTrue(queue.select(third.id))
+        queue.remove(third.id)
+        XCTAssertEqual(queue.items.map(\.id), [first.id, second.id])
+        XCTAssertEqual(queue.currentItemID, second.id)
+    }
+
+    func testEdgesWithoutRepeatAndOnAnEmptyQueue() {
+        var (queue, first, _, _) = queue()
+        XCTAssertTrue(queue.select(first.id))
+        XCTAssertNil(queue.previous(), "Ohne Wiederholung darf der erste Titel nicht ans Ende springen.")
+        XCTAssertEqual(queue.currentItemID, first.id)
+
+        var empty = PlaybackQueue()
+        XCTAssertNil(empty.next(automatic: false))
+        XCTAssertNil(empty.previous())
+        XCTAssertNil(empty.currentItem)
     }
 
     func testRemovalReorderAndTitleUpdates() {

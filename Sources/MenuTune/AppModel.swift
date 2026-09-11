@@ -49,6 +49,7 @@ final class AppModel: ObservableObject {
     /// the popover sizing read this, so the two cannot drift apart.
     var showsContentSection: Bool { playerSize != .mini }
     private let store: LibraryStore
+    private let connectsToYouTube: Bool
     private var canSave = true
     private var ready = false
     private var token: String?
@@ -68,7 +69,11 @@ final class AppModel: ObservableObject {
     private var dismissedClipboardVersion: Int?
     var diagnosticEvent: ((String) -> Void)?
 
-    init(fileURL: URL = LibraryStore.defaultFileURL) {
+    /// Tests pass false. Otherwise every instance would pull YouTube's iframe
+    /// API into a real web view and resolve titles over the network, which makes
+    /// the unit tests depend on a third party being reachable.
+    init(fileURL: URL = LibraryStore.defaultFileURL, connectsToYouTube: Bool = true) {
+        self.connectsToYouTube = connectsToYouTube
         store = LibraryStore(fileURL: fileURL)
         var snapshot = LibrarySnapshot()
         var loadError: String?
@@ -83,7 +88,7 @@ final class AppModel: ObservableObject {
             storageWarning = "Die gespeicherte Liste konnte nicht gelesen werden. Sie bleibt unverändert; neue Änderungen werden vorerst nicht gespeichert. \(loadError)"
         }
         player.onEvent = { [weak self] in self?.handle($0) }
-        player.initialize()
+        if connectsToYouTube { player.initialize() }
     }
 
     func addInput(playImmediately: Bool = false) {
@@ -382,7 +387,7 @@ final class AppModel: ObservableObject {
 
     private func fetchTitle(for videoID: String) {
         // Any unresolved copy justifies a fetch; updateTitle then fills them all.
-        guard titleTasks[videoID] == nil,
+        guard connectsToYouTube, titleTasks[videoID] == nil,
               queue.items.contains(where: { $0.videoID == videoID && $0.title == videoID }) else { return }
         titleTasks[videoID] = Task { [weak self] in
             defer { self?.titleTasks[videoID] = nil }

@@ -10,7 +10,7 @@ final class PopoverSizingTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("MenuTunePopoverSizingTests", isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let model = AppModel(fileURL: directory.appendingPathComponent("library.json"))
+        let model = AppModel(fileURL: directory.appendingPathComponent("library.json"), connectsToYouTube: false)
 
         defer {
             model.shutdown()

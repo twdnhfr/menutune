@@ -10,7 +10,7 @@ final class ClipboardTests: XCTestCase {
                 .appendingPathComponent(UUID().uuidString, isDirectory: true)
             let libraryURL = directory.appendingPathComponent("library.json")
             let pasteboard = NSPasteboard.withUniqueName()
-            let model = AppModel(fileURL: libraryURL)
+            let model = AppModel(fileURL: libraryURL, connectsToYouTube: false)
 
             defer {
                 model.shutdown()
