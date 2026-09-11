@@ -52,18 +52,21 @@ Die Korrekturen aus dem Review vom 11.09.2026 sind **nicht** erneut gegen den ec
 
 ## Release-Weg
 
-Am 11.09.2026 geprüft, ohne die Apple-Runde. Der Universal-Build erzeugt ein Binary mit `x86_64 arm64`. Die Signatur mit der Developer ID setzt Hardened Runtime und einen sicheren Zeitstempel; `codesign --verify --strict --deep` besteht. Wichtigster Einzelbefund: die App startet mit Hardened Runtime unverändert und der eingebettete Player meldet `ready`, es werden also **keine Entitlements gebraucht**. Das Disk-Image enthält die App und einen Link auf den Programme-Ordner und ist signiert.
+`scripts/release.sh` ist am 11.09.2026 vollständig durchgelaufen, einschließlich der Notarisierung bei Apple. Beide Einreichungen wurden akzeptiert, App und Disk-Image tragen ihr Ticket.
 
-Die Vorprüfungen brechen beide mit Rückgabewert 1 ab, und zwar vor dem Build: unsauberes Arbeitsverzeichnis ohne `--allow-dirty`, sowie fehlendes notarytool-Profil.
+| Prüfung | Ergebnis |
+| --- | --- |
+| Universal-Build | `x86_64 arm64` |
+| Signatur | Developer ID, Hardened Runtime, sicherer Zeitstempel |
+| Entitlements | keine nötig; App startet und der Player meldet `ready` |
+| Notarisierung App | Accepted, Ticket angeheftet |
+| Notarisierung Disk-Image | Accepted, Ticket angeheftet |
+| Download mit Quarantäne-Flag | Gatekeeper: `accepted, source=Notarized Developer ID` |
+| App aus dem Image herausgezogen | akzeptiert, Ticket bleibt angeheftet, startet |
 
-Die Notarisierung selbst ist **nie gelaufen**. Im Schlüsselbund liegt kein Profil. Gatekeeper urteilt über den aktuellen Stand entsprechend:
+Die Gegenprobe hat den Download nachgestellt: Quarantäne-Attribut auf das Image gesetzt, eingehängt, App herauskopiert, geprüft und gestartet. Genau diesen Weg gehen Besucher der Website. Damit ist der frühere Zustand behoben, in dem sowohl die älteren DMGs unter `build/production` als auch jeder lokale Build unnotarisiert und damit von Gatekeeper abgewiesen waren.
 
-```text
-rejected
-source=Unnotarized Developer ID
-```
-
-Dasselbe gilt für die älteren DMGs unter `build/production`: universal und korrekt signiert, aber unnotarisiert. Erst der Durchlauf von `scripts/release.sh` mit hinterlegten Zugangsdaten schließt diese Lücke, und erst danach ist das Ergebnis für eine Website geeignet.
+Die Vorprüfungen des Skripts brechen mit Rückgabewert 1 ab, bevor gebaut wird: unsauberes Arbeitsverzeichnis ohne `--allow-dirty`, fehlendes oder unbrauchbares notarytool-Profil.
 
 ## Bedienprüfung
 
