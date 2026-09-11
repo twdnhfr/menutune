@@ -104,6 +104,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKeyAndOrderFront(nil)
         model.diagnosticEvent?("popover-show")
+        // Showing twice without an intervening hide would strand the old monitor.
+        removeMonitor()
         clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             self?.hide()
         }
@@ -174,23 +176,14 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         return image
     }
 
+    /// The middle section reports its own height, so notices, the queue and the
+    /// collapsed state need no duplicated constants here. In the mini size that
+    /// section is not rendered and its reported height is zero.
     private func resize() {
-        if model.playerSize == .mini {
-            let size = NSSize(width: model.playerSize.width, height: model.embeddedVideoHeight + 32)
-            if popover.contentSize != size { popover.contentSize = size }
-            return
-        }
         let available = item.button?.window?.screen?.visibleFrame.height ?? 800
-        // The empty-queue placeholder is a three-line block with generous
-        // padding and needs noticeably more room than a single list row.
-        let queueHeight = model.isQueueExpanded
-            ? 8 + (model.queue.items.isEmpty ? 95 : min(150, Double(model.queue.items.count) * 42))
-            : 0
-        let noticeHeight = (model.errorMessage == nil ? 0.0 : 80.0) + (model.storageWarning == nil ? 0.0 : 80.0)
-            + (model.clipboardSuggestion == nil ? 0.0 : 40.0)
-            + (model.shortcutWarning == nil ? 0.0 : 60.0)
-        let height = min(available - 30, 160 + model.embeddedVideoHeight + queueHeight + noticeHeight)
-        let size = NSSize(width: model.playerSize.width, height: height)
+        let content = model.showsContentSection ? model.contentHeight : 0
+        let natural = model.embeddedVideoHeight + content + PlayerView.bottomBarHeight
+        let size = NSSize(width: model.playerSize.width, height: min(available - 30, natural))
         if popover.contentSize != size { popover.contentSize = size }
     }
 

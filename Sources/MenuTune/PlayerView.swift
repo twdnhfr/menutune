@@ -3,8 +3,20 @@ import MenuTuneCore
 import SwiftUI
 import WebKit
 
+/// Carries the natural height of the scrolling middle section out to the model,
+/// so the popover is sized from the real layout instead of a copy of it.
+private struct ContentHeightKey: PreferenceKey {
+    static let defaultValue: Double = 0
+    static func reduce(value: inout Double, nextValue: () -> Double) {
+        value = max(value, nextValue())
+    }
+}
+
 struct PlayerView: View {
     @ObservedObject var model: AppModel
+
+    /// Read by StatusItemController; the popover adds it to video and content.
+    static let bottomBarHeight: Double = 32
 
     private let purple = Color(red: 0.52, green: 0.32, blue: 0.92)
 
@@ -13,7 +25,7 @@ struct PlayerView: View {
             video
                 .frame(width: playerWidth, height: playerHeight)
 
-            if model.playerSize != .mini {
+            if model.showsContentSection {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 12) {
                         if model.errorMessage != nil || model.storageWarning != nil || model.shortcutWarning != nil { inlineNotices }
@@ -24,6 +36,13 @@ struct PlayerView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
+                    // Inside the scroll view this measures the natural height,
+                    // not the height the popover currently grants it.
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
+                        }
+                    )
                 }
             }
 
@@ -32,6 +51,11 @@ struct PlayerView: View {
         .frame(width: playerWidth)
         .background(.regularMaterial)
         .tint(purple)
+        .onPreferenceChange(ContentHeightKey.self) { [model] height in
+            Task { @MainActor in
+                if abs(model.contentHeight - height) > 0.5 { model.contentHeight = height }
+            }
+        }
     }
 
     private var playerWidth: CGFloat {
@@ -378,7 +402,7 @@ struct PlayerView: View {
             playerSizeControl
         }
         .padding(.horizontal, 7)
-        .frame(height: 32)
+        .frame(height: Self.bottomBarHeight)
         .background(.regularMaterial)
     }
 

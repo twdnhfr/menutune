@@ -4,11 +4,13 @@ Stand: 10. September 2026, lokal auf Apple Silicon mit macOS 26.6.2. Mindestziel
 
 ## Automatisierte Tests
 
-`swift test`: **19 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026 und Review-Korrekturen vom 11.09.2026).
+`swift test`: **20 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026 und Review-Korrekturen vom 11.09.2026).
 
 Geprüft werden URL- und Zeitparameter, erlaubte Hosts, Clipboard-URL-Erkennung, Queue-Navigation und Wiederholung, Entfernen/Verschieben, atomare Speicherung und Umgang mit beschädigten Dateien. Ein zusätzlicher Test verwendet das echte AppModel mit einem privaten, benannten Pasteboard und einer temporären Bibliothek: Lesen allein verändert keine Wiedergabe/Queue, Bestätigung fügt genau einmal hinzu, Verwerfen bleibt für denselben Clipboard-Stand wirksam, neuer Clipboard-Inhalt wird neu geprüft. Die allgemeine Zwischenablage wird im Test nicht verändert.
 
-Zwei Tests aus dem Review vom 11.09.2026 kamen hinzu: eine Bibliothek mit unbekanntem Wiederholungsmodus und fehlendem Titel bleibt lesbar statt den ganzen Ladevorgang scheitern zu lassen, und ein zweites Exemplar desselben Links über das Eingabefeld übernimmt den bereits geladenen Titel.
+Ein Test hängt die Oberfläche in ein echtes Fenster und prüft, dass die gemessene Inhaltshöhe dem Layout folgt und beim Aufklappen der Warteschlange wächst. Damit ist die Popover-Höhe nicht länger eine handgepflegte Kopie des Layouts.
+
+Zwei weitere Tests aus dem Review vom 11.09.2026 kamen hinzu: eine Bibliothek mit unbekanntem Wiederholungsmodus und fehlendem Titel bleibt lesbar statt den ganzen Ladevorgang scheitern zu lassen, und ein zweites Exemplar desselben Links über das Eingabefeld übernimmt den bereits geladenen Titel.
 
 Sieben weitere Tests prüfen die Ausweichlogik bei Annäherung, die Reihenfolge sicherer Ziele, stationäre Maus, Cooldown, fehlende sichere Ziele und negative Bildschirmkoordinaten. Ein Regressionstest prüft das Pendeln über die Mitte in beiden Richtungen (unten → Mitte → oben → Mitte → unten). Ein Host-Test stellt sicher, dass ein verspätetes Entfernen aus dem alten SwiftUI-Container die bereits ins schwebende Fenster verschobene WebView nicht entfernt. Der Speichertest deckt alle drei Größen sowie ältere Bibliotheken ohne Größenangabe ab.
 

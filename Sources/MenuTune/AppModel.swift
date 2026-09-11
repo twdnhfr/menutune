@@ -18,6 +18,10 @@ final class AppModel: ObservableObject {
     @Published var shortcutWarning: String?
     @Published var clipboardSuggestion: String?
     @Published var isPoppedOut = false
+    /// Measured by PlayerView so the popover does not need a second, hand-kept
+    /// copy of the layout. The initial value only covers the first frame, before
+    /// SwiftUI has laid the content out once.
+    @Published var contentHeight: Double = 128
     @Published var isQueueExpanded: Bool {
         didSet { save() }
     }
@@ -41,6 +45,9 @@ final class AppModel: ObservableObject {
     var onTogglePopOut: (() -> Void)?
     var currentItem: QueueItem? { queue.currentItem }
     var embeddedVideoHeight: Double { isPoppedOut ? 56 : playerSize.videoHeight }
+    /// The mini size shows the video and the bottom bar only. Both the view and
+    /// the popover sizing read this, so the two cannot drift apart.
+    var showsContentSection: Bool { playerSize != .mini }
     private let store: LibraryStore
     private var canSave = true
     private var ready = false
