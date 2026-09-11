@@ -18,12 +18,16 @@ final class AppModel: ObservableObject {
     @Published var shortcutWarning: String?
     @Published var clipboardSuggestion: String?
     @Published var isPoppedOut = false
+    @Published var isQueueExpanded: Bool {
+        didSet { save() }
+    }
     @Published var playerSize: PlayerSize {
         didSet { save() }
     }
+    /// Only the embedded player writes this; echoing it back would fight the
+    /// user's own slider drag, so the setter never sends a volume command.
     @Published var volume: Double {
         didSet {
-            player.command("volume", arguments: [volume])
             saveTask?.cancel()
             saveTask = Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(300))
@@ -49,6 +53,9 @@ final class AppModel: ObservableObject {
     private var selectionLoaded = false
     private var selectionStarted = false
     private var playbackEnded = false
+    private var playbackFailed = false
+    private var pendingPause = false
+    private var skippedInRow = 0
     private var playerNeedsReload = false
     private var clipboardVersion: Int?
     private var dismissedClipboardVersion: Int?
@@ -63,6 +70,7 @@ final class AppModel: ObservableObject {
         queue = snapshot.queue
         volume = snapshot.volume
         playerSize = snapshot.playerSize
+        isQueueExpanded = snapshot.queueExpanded
         if let loadError {
             canSave = false
             storageWarning = "Die gespeicherte Liste konnte nicht gelesen werden. Sie bleibt unverändert; neue Änderungen werden vorerst nicht gespeichert. \(loadError)"
@@ -75,9 +83,12 @@ final class AppModel: ObservableObject {
         do {
             let id = try YouTubeLink.videoID(from: input)
             let start = YouTubeLink.startSeconds(from: input)
-            let item = queue.append(videoID: id)
+            // A second copy of a known video keeps the title already fetched.
+            let knownTitle = queue.items.first(where: { $0.videoID == id })?.title
+            let item = queue.append(videoID: id, title: knownTitle)
             input = ""
             errorMessage = nil
+            skippedInRow = 0
             save()
             fetchTitle(for: id)
             if playImmediately { play(item, startSeconds: start) }
@@ -120,6 +131,8 @@ final class AppModel: ObservableObject {
         selectionLoaded = false
         selectionStarted = false
         playbackEnded = false
+        playbackFailed = false
+        pendingPause = false
         currentTime = startSeconds
         duration = 0
         isPlaying = false
@@ -154,6 +167,8 @@ final class AppModel: ObservableObject {
 
     func togglePlayback() {
         if isPlaying || isLoading {
+            // A pause during loading has to survive YouTube's own autoplay event.
+            pendingPause = !isPlaying
             shouldPlay = false
             loadTask?.cancel()
             isLoading = false
@@ -161,9 +176,10 @@ final class AppModel: ObservableObject {
             isPlaying = false
             playbackIndicator = selectionStarted ? .paused : .idle
             statusText = "Pausiert"
-        } else if token == nil || errorMessage != nil || !selectionLoaded || playbackEnded || !ready || playerNeedsReload {
+        } else if token == nil || playbackFailed || !selectionLoaded || playbackEnded || !ready || playerNeedsReload {
             if let item = currentItem ?? queue.items.first { play(item) }
         } else {
+            pendingPause = false
             shouldPlay = true
             player.command("play")
             armLoadingTimeout()
@@ -171,12 +187,8 @@ final class AppModel: ObservableObject {
     }
 
     func next() {
+        skippedInRow = 0
         if let item = queue.next(automatic: false) { play(item) }
-    }
-
-    func previous() {
-        if currentTime > 3 { seek(to: 0) }
-        else if let item = queue.previous() { play(item) }
     }
 
     func remove(_ item: QueueItem) {
@@ -185,7 +197,11 @@ final class AppModel: ObservableObject {
         queue.remove(item.id)
         if removingCurrent {
             stop()
-            if wasActive, let next = currentItem { play(next) }
+            // Without this the embed keeps showing the removed video and every
+            // event it emits is discarded, leaving model and player apart.
+            if let next = currentItem {
+                if wasActive { play(next) } else if ready { prepareSavedSelection() }
+            }
         }
         save()
     }
@@ -208,12 +224,6 @@ final class AppModel: ObservableObject {
         currentTime = time
     }
 
-    func openCurrentOnYouTube() {
-        guard let item = currentItem,
-              let url = URL(string: "https://www.youtube.com/watch?v=\(item.videoID)") else { return }
-        NSWorkspace.shared.open(url)
-    }
-
     func dismissError() { errorMessage = nil }
 
     private func stop() {
@@ -221,6 +231,9 @@ final class AppModel: ObservableObject {
         selectionLoaded = false
         selectionStarted = false
         playbackEnded = false
+        playbackFailed = false
+        pendingPause = false
+        skippedInRow = 0
         token = nil
         loadTask?.cancel()
         player.command("stop")
@@ -261,9 +274,12 @@ final class AppModel: ObservableObject {
             case "state":
                 switch event["state"] as? Int {
                 case 1:
+                    if pendingPause { pendingPause = false; player.command("pause"); return }
                     shouldPlay = true
                     selectionStarted = true
                     playbackEnded = false
+                    playbackFailed = false
+                    skippedInRow = 0
                     errorMessage = nil
                     loadTask?.cancel()
                     isPlaying = true; isLoading = false; statusText = "Wird abgespielt"
@@ -274,8 +290,8 @@ final class AppModel: ObservableObject {
                     isPlaying = false; isLoading = false; statusText = "Pausiert"
                     playbackIndicator = selectionStarted ? .paused : .idle
                 case 3:
+                    // Keep the indicator as it is; buffering is not a stop.
                     isLoading = true; statusText = "Puffert …"
-                    playbackIndicator = .idle
                 case 0:
                     isPlaying = false; isLoading = false
                     playbackIndicator = .idle
@@ -294,7 +310,36 @@ final class AppModel: ObservableObject {
                 case 5: explanation = "YouTube konnte dieses Video hier nicht abspielen."
                 default: explanation = "Das Video konnte nicht geladen werden."
                 }
-                fail("\(explanation) (\(code))")
+                // A video the embed refuses must not stall the whole queue. The
+                // counter bounds the skipping so an all-broken queue still stops.
+                if shouldPlay, [5, 100, 101, 150].contains(code), skippedInRow < queue.items.count,
+                   let following = queue.next(automatic: queue.repeatMode != .one) {
+                    skippedInRow += 1
+                    play(following)
+                    statusText = "Titel übersprungen: \(explanation)"
+                } else {
+                    fail("\(explanation) (\(code))")
+                }
+            case "foreign":
+                // The viewer started a YouTube recommendation inside the embed.
+                switch event["state"] as? Int {
+                case 1:
+                    shouldPlay = false
+                    playbackEnded = false
+                    loadTask?.cancel()
+                    isPlaying = true; isLoading = false
+                    playbackIndicator = .playing
+                    statusText = "YouTube-Empfehlung läuft"
+                case 2:
+                    isPlaying = false; isLoading = false
+                    playbackIndicator = .paused
+                    statusText = "YouTube-Empfehlung pausiert"
+                case 0:
+                    isPlaying = false; isLoading = false
+                    playbackIndicator = .idle
+                    statusText = "YouTube-Empfehlung beendet"
+                default: break
+                }
             case "blocked": fail("Drücke direkt im Video auf Play, um die Wiedergabe zu starten.")
             default: break
             }
@@ -307,12 +352,16 @@ final class AppModel: ObservableObject {
             try? await Task.sleep(for: .seconds(25))
             guard !Task.isCancelled, let self, !self.isPlaying else { return }
             if !self.ready { self.playerNeedsReload = true }
-            self.fail("Das Laden dauert ungewöhnlich lange. Versuche Play erneut oder öffne das Video auf YouTube.")
+            self.fail("Das Laden dauert ungewöhnlich lange. Versuche es mit Play erneut.")
         }
     }
 
     private func fail(_ message: String) {
         loadTask?.cancel()
+        // Distinct from errorMessage, which an invalid link also sets while
+        // playback is intact and should merely resume, not restart.
+        playbackFailed = true
+        pendingPause = false
         isLoading = false
         isPlaying = false
         playbackIndicator = .idle
@@ -322,13 +371,15 @@ final class AppModel: ObservableObject {
 
     private func save() {
         guard canSave else { return }
-        do { try store.save(LibrarySnapshot(queue: queue, volume: volume, playerSize: playerSize)); storageWarning = nil }
+        do { try store.save(LibrarySnapshot(queue: queue, volume: volume, playerSize: playerSize,
+                                            queueExpanded: isQueueExpanded)); storageWarning = nil }
         catch { storageWarning = "Deine Liste konnte nicht gespeichert werden: \(error.localizedDescription)" }
     }
 
     private func fetchTitle(for videoID: String) {
+        // Any unresolved copy justifies a fetch; updateTitle then fills them all.
         guard titleTasks[videoID] == nil,
-              let item = queue.items.first(where: { $0.videoID == videoID }), item.title == videoID else { return }
+              queue.items.contains(where: { $0.videoID == videoID && $0.title == videoID }) else { return }
         titleTasks[videoID] = Task { [weak self] in
             defer { self?.titleTasks[videoID] = nil }
             var components = URLComponents(string: "https://www.youtube.com/oembed")!

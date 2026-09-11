@@ -10,6 +10,14 @@ public struct QueueItem: Identifiable, Codable, Equatable, Sendable {
         self.videoID = videoID
         self.title = title ?? videoID
     }
+
+    /// A missing title must not make the whole library unreadable.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        videoID = try container.decode(String.self, forKey: .videoID)
+        title = try container.decodeIfPresent(String.self, forKey: .title) ?? videoID
+    }
 }
 
 public enum RepeatMode: String, Codable, CaseIterable, Sendable {
@@ -27,6 +35,15 @@ public struct PlaybackQueue: Codable, Equatable, Sendable {
         self.items = items
         self.currentItemID = currentItemID
         self.repeatMode = repeatMode
+    }
+
+    /// An unknown repeat mode from a newer version falls back instead of
+    /// failing the whole load, which would block saving for the session.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        items = try container.decodeIfPresent([QueueItem].self, forKey: .items) ?? []
+        currentItemID = try container.decodeIfPresent(UUID.self, forKey: .currentItemID)
+        repeatMode = RepeatMode(rawValue: try container.decodeIfPresent(String.self, forKey: .repeatMode) ?? "") ?? .off
     }
 
     public var currentItem: QueueItem? {

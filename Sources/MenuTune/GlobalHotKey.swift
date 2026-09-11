@@ -27,6 +27,14 @@ final class GlobalHotKey {
         self.onError = onError
     }
 
+    /// The Carbon handler holds an unretained pointer back to this object, so
+    /// the registration must not survive it even if no one calls `unregister()`.
+    deinit {
+        if let hotKey { UnregisterEventHotKey(hotKey) }
+        if let eventHandler { RemoveEventHandler(eventHandler) }
+        if let layoutObserver { DistributedNotificationCenter.default().removeObserver(layoutObserver) }
+    }
+
     func register() {
         guard hotKey == nil else { return }
         wantsRegistration = true

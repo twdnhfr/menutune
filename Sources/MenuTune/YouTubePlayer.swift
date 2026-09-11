@@ -1,6 +1,20 @@
 import AppKit
 import WebKit
 
+/// The content controller retains its message handler, and the handler owns the
+/// web view that owns the controller. Registering through this proxy keeps that
+/// cycle from outliving the player when no one calls `shutdown()`.
+@MainActor
+private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private weak var target: YouTubePlayer?
+
+    init(target: YouTubePlayer) { self.target = target }
+
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        target?.userContentController(controller, didReceive: message)
+    }
+}
+
 /// The app owns this player for its entire lifetime, independently of the popover.
 @MainActor
 final class YouTubePlayer: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
@@ -15,7 +29,7 @@ final class YouTubePlayer: NSObject, WKScriptMessageHandler, WKNavigationDelegat
         configuration.websiteDataStore = .default()
         webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 420, height: 236), configuration: configuration)
         super.init()
-        configuration.userContentController.add(self, name: "menuTune")
+        configuration.userContentController.add(WeakScriptMessageHandler(target: self), name: "menuTune")
         webView.navigationDelegate = self
         webView.uiDelegate = self
     }
@@ -23,13 +37,22 @@ final class YouTubePlayer: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     func initialize() {
         guard !loaded else { return }
         loaded = true
-        guard let url = Bundle.module.url(forResource: "player", withExtension: "html"),
+        guard let url = Self.playerURL,
               let html = try? String(contentsOf: url, encoding: .utf8) else {
             onEvent?(["kind": "resourceError"])
             return
         }
         // YouTube documents an HTTPS base URL using the app ID for native embeds.
         webView.loadHTMLString(html, baseURL: identityURL)
+    }
+
+    /// The shipped bundle carries player.html in its own Resources directory.
+    /// SwiftPM's generated Bundle.module only looks next to the executable and
+    /// then at an absolute build path, so it resolves solely on the build
+    /// machine; it stays as the fallback for `swift run` and the tests.
+    private static var playerURL: URL? {
+        Bundle.main.url(forResource: "player", withExtension: "html")
+            ?? Bundle.module.url(forResource: "player", withExtension: "html")
     }
 
     func command(_ name: String, arguments: [Any] = []) {

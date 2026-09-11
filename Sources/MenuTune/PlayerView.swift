@@ -21,7 +21,6 @@ struct PlayerView: View {
                         if model.clipboardSuggestion != nil { clipboardSuggestionRow }
                         addBar
                         queue
-                        footer
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
@@ -250,14 +249,30 @@ struct PlayerView: View {
     private var queue: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Warteschlange")
-                    .font(.subheadline.weight(.semibold))
-                Text("\(model.queue.items.count)")
-                    .font(.caption.weight(.medium).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.quaternary, in: Capsule())
+                Button {
+                    model.isQueueExpanded.toggle()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: model.isQueueExpanded ? "chevron.down" : "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 10)
+                        Text("Warteschlange")
+                            .font(.subheadline.weight(.semibold))
+                        Text("\(model.queue.items.count)")
+                            .font(.caption.weight(.medium).monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Warteschlange, \(model.queue.items.count) Titel")
+                .accessibilityValue(model.isQueueExpanded ? "Aufgeklappt" : "Zugeklappt")
+                .help(model.isQueueExpanded ? "Warteschlange zuklappen" : "Warteschlange aufklappen")
                 Menu {
                     Button("Wiederholen: Aus") { setRepeat(.off) }
                     Button("Wiederholen: Alle") { setRepeat(.all) }
@@ -269,34 +284,40 @@ struct PlayerView: View {
                 }
                 .menuStyle(.borderlessButton)
                 .accessibilityLabel("Wiederholung: \(repeatLabel)")
-                Spacer()
             }
 
-            if model.queue.items.isEmpty {
-                VStack(spacing: 4) {
-                    Image(systemName: "music.note.list")
-                        .font(.title3)
-                        .foregroundStyle(purple.opacity(0.8))
-                    Text("Deine Musik. Ein Klick entfernt.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                    Text("Füge oben einen YouTube-Link hinzu.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-            } else {
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(spacing: 0) {
-                        ForEach(Array(model.queue.items.enumerated()), id: \.element.id) { index, item in
-                            queueRow(item, index: index)
-                            if item.id != model.queue.items.last?.id { Divider().padding(.leading, 36) }
-                        }
+            if model.isQueueExpanded {
+                queueContents
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var queueContents: some View {
+        if model.queue.items.isEmpty {
+            VStack(spacing: 4) {
+                Image(systemName: "music.note.list")
+                    .font(.title3)
+                    .foregroundStyle(purple.opacity(0.8))
+                Text("Deine Musik. Ein Klick entfernt.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                Text("Füge oben einen YouTube-Link hinzu.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 18)
+        } else {
+            ScrollView(.vertical, showsIndicators: true) {
+                VStack(spacing: 0) {
+                    ForEach(Array(model.queue.items.enumerated()), id: \.element.id) { index, item in
+                        queueRow(item, index: index)
+                        if item.id != model.queue.items.last?.id { Divider().padding(.leading, 36) }
                     }
                 }
-                .frame(height: min(CGFloat(150), CGFloat(model.queue.items.count * 42)))
             }
+            .frame(height: min(CGFloat(150), CGFloat(model.queue.items.count * 42)))
         }
     }
 
@@ -338,30 +359,6 @@ struct PlayerView: View {
         .padding(.vertical, 7)
         .background(selected ? purple.opacity(0.09) : .clear)
         .contentShape(Rectangle())
-    }
-
-    private var footer: some View {
-        HStack {
-            Button {
-                model.openCurrentOnYouTube()
-            } label: {
-                Label("Auf YouTube öffnen", systemImage: "arrow.up.right.square")
-                    .font(.caption)
-            }
-            .buttonStyle(.borderless)
-            .help("Auf YouTube öffnen")
-            .accessibilityLabel("Auf YouTube öffnen")
-            .disabled(model.queue.currentItem == nil)
-
-            Spacer()
-
-            Button("Beenden") {
-                NSApplication.shared.terminate(nil)
-            }
-            .font(.caption)
-            .buttonStyle(.borderless)
-        }
-        .foregroundStyle(.secondary)
     }
 
     private var bottomBar: some View {

@@ -13,6 +13,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private var hotKey: GlobalHotKey?
     private let floating: FloatingPlayerController
     private var previousApplication: NSRunningApplication?
+    private var iconState: (AppModel.PlaybackIndicator, Bool)?
     var isShown: Bool { popover.isShown }
     var onDidShow: (() -> Void)?
 
@@ -52,7 +53,10 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         model.diagnosticEvent?("menu-click")
         if NSApp.currentEvent?.type == .rightMouseUp {
             let menu = NSMenu()
-            let playback = NSMenuItem(title: model.isPlaying ? "Pausieren" : "Abspielen", action: #selector(togglePlayback), keyEquivalent: "")
+            // Without this AppKit re-enables every item during popUp.
+            menu.autoenablesItems = false
+            let playing = model.isPlaying || model.isLoading
+            let playback = NSMenuItem(title: playing ? "Pausieren" : "Abspielen", action: #selector(togglePlayback), keyEquivalent: "")
             playback.target = self
             playback.isEnabled = !model.queue.items.isEmpty
             menu.addItem(playback)
@@ -132,11 +136,19 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private func refresh() {
         floating.updateSize(model.playerSize)
         resize()
+        // This runs on every published change, several times per second while a
+        // track plays, so nothing here may redraw or reassign unconditionally.
         let dark = item.button?.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-        item.button?.image = Self.icon(indicator: model.playbackIndicator, dark: dark)
+        if iconState == nil || iconState! != (model.playbackIndicator, dark) {
+            iconState = (model.playbackIndicator, dark)
+            item.button?.image = Self.icon(indicator: model.playbackIndicator, dark: dark)
+        }
         let title = model.currentItem?.title ?? "MenuTune"
-        item.button?.toolTip = "\(title) · \(model.statusText) · ⌘⇧Y"
-        item.button?.setAccessibilityLabel("MenuTune: \(model.statusText)")
+        let toolTip = "\(title) · \(model.statusText) · ⌘⇧Y"
+        if item.button?.toolTip != toolTip {
+            item.button?.toolTip = toolTip
+            item.button?.setAccessibilityLabel("MenuTune: \(model.statusText)")
+        }
     }
 
     private static func icon(indicator: AppModel.PlaybackIndicator, dark: Bool) -> NSImage {
@@ -169,12 +181,16 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             return
         }
         let available = item.button?.window?.screen?.visibleFrame.height ?? 800
-        let queueHeight = model.queue.items.isEmpty ? 65 : min(150, Double(model.queue.items.count) * 42)
+        // The empty-queue placeholder is a three-line block with generous
+        // padding and needs noticeably more room than a single list row.
+        let queueHeight = model.isQueueExpanded
+            ? 8 + (model.queue.items.isEmpty ? 95 : min(150, Double(model.queue.items.count) * 42))
+            : 0
         let noticeHeight = (model.errorMessage == nil ? 0.0 : 80.0) + (model.storageWarning == nil ? 0.0 : 80.0)
             + (model.clipboardSuggestion == nil ? 0.0 : 40.0)
             + (model.shortcutWarning == nil ? 0.0 : 60.0)
-        let height = min(available - 30, 194 + model.embeddedVideoHeight + queueHeight + noticeHeight)
-        let size = NSSize(width: model.playerSize.width, height: max(model.isPoppedOut ? 230 : 400, height))
+        let height = min(available - 30, 160 + model.embeddedVideoHeight + queueHeight + noticeHeight)
+        let size = NSSize(width: model.playerSize.width, height: height)
         if popover.contentSize != size { popover.contentSize = size }
     }
 

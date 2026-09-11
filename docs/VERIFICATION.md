@@ -4,9 +4,11 @@ Stand: 10. September 2026, lokal auf Apple Silicon mit macOS 26.6.2. Mindestziel
 
 ## Automatisierte Tests
 
-`swift test`: **17 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026).
+`swift test`: **19 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026 und Review-Korrekturen vom 11.09.2026).
 
 Geprüft werden URL- und Zeitparameter, erlaubte Hosts, Clipboard-URL-Erkennung, Queue-Navigation und Wiederholung, Entfernen/Verschieben, atomare Speicherung und Umgang mit beschädigten Dateien. Ein zusätzlicher Test verwendet das echte AppModel mit einem privaten, benannten Pasteboard und einer temporären Bibliothek: Lesen allein verändert keine Wiedergabe/Queue, Bestätigung fügt genau einmal hinzu, Verwerfen bleibt für denselben Clipboard-Stand wirksam, neuer Clipboard-Inhalt wird neu geprüft. Die allgemeine Zwischenablage wird im Test nicht verändert.
+
+Zwei Tests aus dem Review vom 11.09.2026 kamen hinzu: eine Bibliothek mit unbekanntem Wiederholungsmodus und fehlendem Titel bleibt lesbar statt den ganzen Ladevorgang scheitern zu lassen, und ein zweites Exemplar desselben Links über das Eingabefeld übernimmt den bereits geladenen Titel.
 
 Sieben weitere Tests prüfen die Ausweichlogik bei Annäherung, die Reihenfolge sicherer Ziele, stationäre Maus, Cooldown, fehlende sichere Ziele und negative Bildschirmkoordinaten. Ein Regressionstest prüft das Pendeln über die Mitte in beiden Richtungen (unten → Mitte → oben → Mitte → unten). Ein Host-Test stellt sicher, dass ein verspätetes Entfernen aus dem alten SwiftUI-Container die bereits ins schwebende Fenster verschobene WebView nicht entfernt. Der Speichertest deckt alle drei Größen sowie ältere Bibliotheken ohne Größenangabe ab.
 
@@ -35,6 +37,12 @@ SMOKE PASS: hidden=true pause=true resume=true automaticNext=true embeddedReplay
 ```
 
 Der Test wertet YouTubes Zustandsmeldungen und Fortschritt aus. WebKits Medienstatus wird zusätzlich protokolliert. Eine akustische Messung der Lautsprecher-/Kopfhörerausgabe ist nicht Teil des Tests.
+
+## Ausgeliefertes App-Bundle
+
+Am 11.09.2026 geprüft: mit verstecktem `.build`-Verzeichnis gestartet das Bundle sauber durch und der Player meldet `ready`. Vor der Korrektur brach derselbe Versuch sofort mit `Fatal error: could not load resource bundle` ab, weil SwiftPMs `Bundle.module` nur neben der ausführbaren Datei und danach an einem fest einkompilierten Build-Pfad sucht. `codesign --verify --strict` besteht weiterhin.
+
+Die Korrekturen aus dem Review vom 11.09.2026 sind **nicht** erneut gegen den echten Player geprüft worden. Der Test unten braucht eine interaktive Desktop-Sitzung; ohne sie erscheint das Popover nicht und die Testsequenz startet nicht. Betroffen sind vor allem das Überspringen gesperrter Videos, die Übernahme von im Embed gestarteten Empfehlungen und die Pause während des Ladens.
 
 ## Bedienprüfung
 

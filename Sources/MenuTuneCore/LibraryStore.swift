@@ -20,18 +20,22 @@ public struct LibrarySnapshot: Codable, Equatable, Sendable {
     public var queue: PlaybackQueue
     public var volume: Double
     public var playerSize: PlayerSize
+    public var queueExpanded: Bool
 
-    public init(queue: PlaybackQueue = PlaybackQueue(), volume: Double = 0.65, playerSize: PlayerSize = .standard) {
+    public init(queue: PlaybackQueue = PlaybackQueue(), volume: Double = 0.65,
+                playerSize: PlayerSize = .standard, queueExpanded: Bool = false) {
         self.queue = queue
         self.volume = Self.clampedVolume(volume)
         self.playerSize = playerSize
+        self.queueExpanded = queueExpanded
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        queue = try container.decode(PlaybackQueue.self, forKey: .queue)
+        queue = try container.decodeIfPresent(PlaybackQueue.self, forKey: .queue) ?? PlaybackQueue()
         volume = Self.clampedVolume(try container.decodeIfPresent(Double.self, forKey: .volume) ?? 0.65)
         playerSize = PlayerSize(rawValue: try container.decodeIfPresent(String.self, forKey: .playerSize) ?? "") ?? .standard
+        queueExpanded = try container.decodeIfPresent(Bool.self, forKey: .queueExpanded) ?? false
     }
 
     private static func clampedVolume(_ volume: Double) -> Double {

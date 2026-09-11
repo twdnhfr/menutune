@@ -26,15 +26,18 @@ MenuTune erscheint dauerhaft als Wellenform in der Menüleiste. Ein kleiner Punk
 - Auf einen Titel klicken, um ihn abzuspielen. Über sein Aktionsmenü kannst du ihn verschieben oder entfernen.
 - Play/Pause, Lautstärke und Position werden direkt im YouTube-Player bedient. Es gibt keine doppelte Steuerungsleiste. Der Statuspunkt folgt auch diesen Player-Aktionen.
 - Über das Menü neben **Warteschlange** lässt sich ein Titel oder die ganze Liste wiederholen. Nächster Titel und Play/Pause sind zusätzlich über Rechtsklick auf das Menüleisten-Symbol erreichbar.
+- Ein Klick auf **Warteschlange** klappt die Liste auf und zu. Der Player bleibt dadurch kompakt; der Zustand wird lokal gespeichert und gilt beim nächsten Start weiter.
 - Ein Klick außerhalb oder auf den Pfeil oben schließt das Menü. Bei Titelwechseln öffnet es sich nicht automatisch.
 - Fehler erscheinen innerhalb des Players. Sie öffnen kein zusätzliches Fenster.
-- Die Warteschlange und Lautstärke werden lokal gespeichert. Beim nächsten App-Start beginnt keine automatische Wiedergabe.
+- Sperrt YouTube ein Video für eingebettete Player, überspringt MenuTune es während der laufenden Wiedergabe und zeigt den Grund in der Statuszeile. Sind alle Titel gesperrt, bleibt die Wiedergabe mit einer Meldung stehen.
+- Startest du im Video eine YouTube-Empfehlung, folgt die Statusanzeige ihr. Play/Pause wirken dann auf dieses Video; der Warteschlangen-Titel läuft erst wieder nach einem Klick auf seine Zeile.
+- Warteschlange, Lautstärke, Playergröße und der auf-/zugeklappte Zustand der Liste werden lokal gespeichert. Beim nächsten App-Start beginnt keine automatische Wiedergabe.
 
 Die lokale Datei liegt unter `~/Library/Application Support/MenuTune/library.json`. Ist sie beschädigt, bleibt sie unverändert; eine Meldung weist darauf hin, dass Änderungen vorerst nicht gespeichert werden. Nach Sicherung bzw. Wiederherstellung der Datei die App neu starten.
 
 ## Aktueller Umfang
 
-Version 0.1 ist ein Machbarkeitsprototyp mit einer gespeicherten Warteschlange. Mehrere benannte Playlists, automatische Empfehlungen, Hover-Vorschau, Google-Anmeldung, Medientasten und Autostart sind noch nicht enthalten. Nicht jedes YouTube-Video erlaubt die Wiedergabe in eingebetteten Playern. In diesem Fall gibt es den Link **Auf YouTube öffnen**.
+Version 0.1 ist ein Machbarkeitsprototyp mit einer gespeicherten Warteschlange. Mehrere benannte Playlists, automatische Empfehlungen, Hover-Vorschau, Google-Anmeldung, Medientasten und Autostart sind noch nicht enthalten. Nicht jedes YouTube-Video erlaubt die Wiedergabe in eingebetteten Playern. Solche Titel werden übersprungen; öffnen lassen sie sich über den Link, den der eingebettete Player selbst anzeigt.
 
 Die Wiedergabe nutzt den normalen YouTube-IFrame-Player in einer persistenten `WKWebView`. Es werden keine Videos heruntergeladen, Tonspuren extrahiert oder Werbeblocker eingebaut. Metadaten werden über YouTubes oEmbed-Endpunkt geladen. YouTube erhält beim Laden/Abspielen die üblichen Web-Anfragen und kann Cookies in der eigenen WebView speichern; die App importiert keine Browser-Cookies.
 
@@ -56,7 +59,7 @@ build/MenuTune.app/Contents/MacOS/MenuTune \
   --smoke-test 2>build/playback-smoke.log
 ```
 
-Der Test prüft die Player-Zeit und WebKit-Medienzustände. Er ist kein Nachweis dafür, dass Lautsprecher oder Kopfhörer hörbar Ton ausgeben. Während des Tests öffnet und schließt sich das Menü gezielt. Im normalen Betrieb geschieht das nicht.
+Der Test wertet YouTubes Zustandsmeldungen und die Player-Zeit aus; WebKits Medienzustand wird zusätzlich protokolliert, geht aber nicht in die Bewertung ein. Er ist kein Nachweis dafür, dass Lautsprecher oder Kopfhörer hörbar Ton ausgeben. Während des Tests öffnet und schließt sich das Menü gezielt. Im normalen Betrieb geschieht das nicht.
 
 Der Test beginnt erst, wenn der Player sichtbar geöffnet ist; bei Bedarf das Menüleisten-Symbol anklicken. Die geprüften Abläufe und Grenzen sind in [docs/VERIFICATION.md](docs/VERIFICATION.md) dokumentiert.
 

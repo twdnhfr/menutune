@@ -47,9 +47,11 @@
       width:'100%', height:'100%',
       playerVars:{playsinline:1, controls:1, autoplay:0, origin:'https://de.wdnhfr.menutune', hl:'de'},
       events:{
-        onReady() { ready = true; send('ready'); if (active) window.mt.load(active); },
+        onReady() { ready = true; clearTimeout(readyTimer); send('ready'); if (active) window.mt.load(active); },
         onStateChange(event) {
-          if (!active || videoID() !== active.videoID) return;
+          if (!active) return;
+          // A recommendation the viewer picked in the embed still belongs on screen.
+          if (videoID() !== active.videoID) { send('foreign', {state:event.data}); return; }
           if (event.data === 1) endedToken = null;
           if (event.data === 0) {
             if (endedToken === active.token) return;
@@ -62,6 +64,9 @@
       }
     });
   };
+  // The iframe API can load while its widget script never finishes; without
+  // this the first play sits in the loading state until the native timeout.
+  const readyTimer = setTimeout(() => { if (!ready) send('networkError'); }, 15000);
   setInterval(progress, 500);
   </script>
   <script src="https://www.youtube.com/iframe_api" onerror="send('networkError')"></script>

@@ -115,6 +115,32 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(restored.volume, 0.3)
     }
 
+    func testUnknownRepeatModeAndMissingTitleStayReadable() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = LibraryStore(fileURL: directory.appendingPathComponent("library.json"))
+        var queue = PlaybackQueue(repeatMode: .all)
+        let item = queue.append(videoID: "aaaaaaaaaaa", title: "A")
+        _ = queue.select(item.id)
+        try store.save(LibrarySnapshot(queue: queue, playerSize: .mini, queueExpanded: true))
+
+        var raw = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: store.fileURL)) as? [String: Any])
+        var stored = try XCTUnwrap(raw["queue"] as? [String: Any])
+        var items = try XCTUnwrap(stored["items"] as? [[String: Any]])
+        stored["repeatMode"] = "shuffle"
+        items[0].removeValue(forKey: "title")
+        stored["items"] = items
+        raw["queue"] = stored
+        try JSONSerialization.data(withJSONObject: raw).write(to: store.fileURL)
+
+        let restored = try store.load()
+        XCTAssertEqual(restored.queue.repeatMode, .off)
+        XCTAssertEqual(restored.queue.items.map(\.title), ["aaaaaaaaaaa"])
+        XCTAssertEqual(restored.queue.currentItemID, item.id)
+        XCTAssertEqual(restored.playerSize, .mini)
+        XCTAssertTrue(restored.queueExpanded)
+    }
+
     func testRoundTripMissingAndCorrupt() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let url = directory.appendingPathComponent("nested/library.json")
