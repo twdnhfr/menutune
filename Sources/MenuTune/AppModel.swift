@@ -215,12 +215,9 @@ final class AppModel: ObservableObject {
 
     func move(_ item: QueueItem, by offset: Int) { queue.move(item.id, by: offset); save() }
 
-    func cycleRepeat() {
-        switch queue.repeatMode {
-        case .off: queue.repeatMode = .all
-        case .all: queue.repeatMode = .one
-        case .one: queue.repeatMode = .off
-        }
+    func setRepeat(_ mode: RepeatMode) {
+        guard queue.repeatMode != mode else { return }
+        queue.repeatMode = mode
         save()
     }
 

@@ -74,6 +74,10 @@ final class YouTubePlayer: NSObject, WKScriptMessageHandler, WKNavigationDelegat
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
+        // Subframes deliberately get every https host: the embed streams from
+        // per-session googlevideo.com subdomains plus ytimg and ad hosts, which
+        // no static allowlist survives. The main frame stays locked down below,
+        // so a subframe cannot take the top-level navigation with it.
         if navigationAction.targetFrame?.isMainFrame == false {
             decisionHandler(["https", "about"].contains(url.scheme ?? "") ? .allow : .cancel)
         } else if url.absoluteString == "about:blank" || url.host == identityURL.host {

@@ -298,9 +298,9 @@ struct PlayerView: View {
                 .accessibilityValue(model.isQueueExpanded ? "Aufgeklappt" : "Zugeklappt")
                 .help(model.isQueueExpanded ? "Warteschlange zuklappen" : "Warteschlange aufklappen")
                 Menu {
-                    Button("Wiederholen: Aus") { setRepeat(.off) }
-                    Button("Wiederholen: Alle") { setRepeat(.all) }
-                    Button("Wiederholen: Titel") { setRepeat(.one) }
+                    Button("Wiederholen: Aus") { model.setRepeat(.off) }
+                    Button("Wiederholen: Alle") { model.setRepeat(.all) }
+                    Button("Wiederholen: Titel") { model.setRepeat(.one) }
                 } label: {
                     Image(systemName: repeatIcon)
                         .foregroundStyle(model.queue.repeatMode == .off ? .secondary : purple)
@@ -450,10 +450,6 @@ struct PlayerView: View {
         case .all: return "Alle"
         case .one: return "Titel"
         }
-    }
-
-    private func setRepeat(_ mode: RepeatMode) {
-        while model.queue.repeatMode != mode { model.cycleRepeat() }
     }
 
 }

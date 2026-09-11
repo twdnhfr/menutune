@@ -47,7 +47,7 @@ final class FloatingPlayerController {
         guard !isShown else { return }
         isShown = true
         requestedSize = size
-        screenNumber = screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        screenNumber = Self.number(of: screen)
         avoidance.reset()
         previousPointer = nil
         host.attach(player.webView)
@@ -88,16 +88,20 @@ final class FloatingPlayerController {
         frames = []
     }
 
+    /// AppKit identifies a display only through its device description.
+    private static func number(of screen: NSScreen?) -> NSNumber? {
+        screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+    }
+
     private func currentScreen() -> NSScreen? {
-        NSScreen.screens.first {
-            ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber) == screenNumber
-        } ?? NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
+        NSScreen.screens.first { Self.number(of: $0) == screenNumber }
+            ?? NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main
     }
 
     private func refreshGeometry(force: Bool = false) {
         guard isShown, let screen = currentScreen() else { return }
         guard force || visibleFrame != screen.visibleFrame else { return }
-        screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        screenNumber = Self.number(of: screen)
         visibleFrame = screen.visibleFrame
         let available = screen.visibleFrame.insetBy(dx: 16, dy: 16)
         let width = min(CGFloat(requestedSize.width), available.width, available.height * 16 / 9)

@@ -46,23 +46,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Direct command-line launches should not create a second menu-bar player.
+        let arguments = ProcessInfo.processInfo.arguments
+        let isSmokeTest = arguments.contains("--smoke-test")
         if let existing = NSRunningApplication.runningApplications(withBundleIdentifier: "de.wdnhfr.menutune")
             .first(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }) {
+            // Quitting silently is right for a double launch, but a test run has
+            // to say why it produced no result at all.
+            if isSmokeTest { Self.log("SMOKE FAIL: MenuTune läuft bereits, der Test wurde nicht gestartet.") }
             existing.activate(options: [])
             NSApp.terminate(nil)
             return
         }
-        let arguments = ProcessInfo.processInfo.arguments
         func argument(_ flag: String) -> String? {
             guard let index = arguments.firstIndex(of: flag), arguments.indices.contains(index + 1) else { return nil }
             return arguments[index + 1]
         }
-        let libraryURL = argument("--library").map { URL(fileURLWithPath: $0) } ?? LibraryStore.defaultFileURL
+        let libraryArgument = argument("--library")
+        // The test appends and removes entries, so it must never touch the real one.
+        if isSmokeTest && libraryArgument == nil {
+            Self.log("SMOKE FAIL: --smoke-test verändert die Warteschlange und verlangt deshalb --library.")
+            NSApp.terminate(nil)
+            return
+        }
+        let libraryURL = libraryArgument.map { URL(fileURLWithPath: $0) } ?? LibraryStore.defaultFileURL
         let model = AppModel(fileURL: libraryURL)
         let status = StatusItemController(model: model)
         self.model = model
         self.status = status
-        if arguments.contains("--smoke-test") {
+        if isSmokeTest {
             model.diagnosticEvent = { Self.log($0) }
         }
         // AppKit must finish launching before attaching the popover to the status
@@ -73,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     status.onDidShow = nil
                     model.input = link
                     model.addInput(playImmediately: true)
-                    if arguments.contains("--smoke-test") {
+                    if isSmokeTest {
                         self?.smokeTask = Task { await PlaybackSmokeTest.run(model: model, status: status) }
                     }
                 }

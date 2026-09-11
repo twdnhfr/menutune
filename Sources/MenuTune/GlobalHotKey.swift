@@ -1,6 +1,11 @@
 import AppKit
 import Carbon.HIToolbox
 
+// Shared by the class and the C callback at the bottom, which runs outside the
+// main actor and would otherwise need its own copy of these literals.
+private let hotKeySignature: OSType = 0x4D54484B // "MTHK"
+private let hotKeyID: UInt32 = 1
+
 /// Registers the application's global Command-Shift-Y shortcut.
 ///
 /// Carbon's hot-key API observes virtual key codes (physical keys), so the
@@ -8,9 +13,6 @@ import Carbon.HIToolbox
 /// shortcut on the logical Y key for both QWERTY and QWERTZ layouts.
 @MainActor
 final class GlobalHotKey {
-    private static let hotKeySignature: OSType = 0x4D54484B // "MTHK"
-    private static let hotKeyID: UInt32 = 1
-
     private let action: @MainActor () -> Void
     private let onError: @MainActor (String?) -> Void
     private var hotKey: EventHotKeyRef?
@@ -65,7 +67,7 @@ final class GlobalHotKey {
             return
         }
 
-        let identifier = EventHotKeyID(signature: Self.hotKeySignature, id: Self.hotKeyID)
+        let identifier = EventHotKeyID(signature: hotKeySignature, id: hotKeyID)
         let status = RegisterEventHotKey(
             keyCode,
             UInt32(cmdKey | shiftKey),
@@ -123,10 +125,9 @@ final class GlobalHotKey {
         register()
     }
 
-    fileprivate func handle(kind: UInt32, identifier: EventHotKeyID) {
+    /// The C callback has already matched the identifier before dispatching.
+    fileprivate func handle(kind: UInt32) {
         guard wantsRegistration, hotKey != nil else { return }
-        guard identifier.signature == Self.hotKeySignature,
-              identifier.id == Self.hotKeyID else { return }
         if kind == UInt32(kEventHotKeyPressed) {
             guard !isPressed else { return }
             isPressed = true
@@ -195,12 +196,13 @@ private func globalHotKeyEventHandler(
         &identifier
     )
     guard status == noErr else { return status }
-    guard identifier.signature == 0x4D54484B, identifier.id == 1 else {
+    guard identifier.signature == hotKeySignature,
+          identifier.id == hotKeyID else {
         return OSStatus(eventNotHandledErr)
     }
     let kind = GetEventKind(event)
     Task { @MainActor in
-        hotKey.handle(kind: kind, identifier: identifier)
+        hotKey.handle(kind: kind)
     }
     return noErr
 }

@@ -115,7 +115,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         let shouldRestore = restoreFocus && NSWorkspace.shared.frontmostApplication?.processIdentifier == ProcessInfo.processInfo.processIdentifier
         popover.performClose(nil)
         removeMonitor()
-        if shouldRestore { previousApplication?.activate(options: []) }
+        // Without a live predecessor this accessory app would keep the focus and
+        // the user would type into nothing, so hand it on explicitly.
+        if shouldRestore {
+            if let previousApplication, !previousApplication.isTerminated {
+                previousApplication.activate(options: [])
+            } else {
+                NSApp.deactivate()
+            }
+        }
         // Intentionally keep both the hosting controller and WKWebView alive.
     }
 
