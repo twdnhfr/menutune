@@ -15,6 +15,14 @@ public enum YouTubeLinkError: Error, LocalizedError, Equatable, Sendable {
 public enum YouTubeLink {
     private static let idCharacters = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
 
+    /// The single allowlist behind both the link parser and the time parameter,
+    /// so a host cannot be added to one and forgotten in the other. Matching is
+    /// exact, which is what keeps youtube.com.example and evil.youtube.com out.
+    private static let allowedHosts: Set<String> = [
+        "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com",
+        "youtube-nocookie.com", "www.youtube-nocookie.com", "youtu.be"
+    ]
+
     public static func videoID(from input: String) throws -> String {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
         if isValidID(value) { return value }
@@ -24,10 +32,16 @@ public enum YouTubeLink {
               let host = components.host?.lowercased()
         else { throw YouTubeLinkError.invalidLink }
 
+        guard allowedHosts.contains(host) else { throw YouTubeLinkError.invalidVideoID }
+
         let pathParts = components.path.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
         let id: String?
         switch host {
-        case "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com":
+        case "youtu.be":
+            id = pathParts.count == 1 ? pathParts[0] : nil
+        case "youtube-nocookie.com", "www.youtube-nocookie.com":
+            id = pathParts.count == 2 && pathParts[0] == "embed" ? pathParts[1] : nil
+        default:
             if pathParts == ["watch"] {
                 id = components.queryItems?.first(where: { $0.name == "v" })?.value
             } else if pathParts.count == 2 && ["shorts", "live", "embed"].contains(pathParts[0]) {
@@ -35,14 +49,6 @@ public enum YouTubeLink {
             } else {
                 id = nil
             }
-        case "youtube-nocookie.com":
-            id = pathParts.count == 2 && pathParts[0] == "embed" ? pathParts[1] : nil
-        case "www.youtube-nocookie.com":
-            id = pathParts.count == 2 && pathParts[0] == "embed" ? pathParts[1] : nil
-        case "youtu.be":
-            id = pathParts.count == 1 ? pathParts[0] : nil
-        default:
-            id = nil
         }
 
         guard let id, isValidID(id) else { throw YouTubeLinkError.invalidVideoID }
@@ -53,8 +59,7 @@ public enum YouTubeLink {
         let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !isValidID(value), let components = URLComponents(string: value),
               let scheme = components.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let host = components.host?.lowercased(),
-              ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "youtu.be"].contains(host)
+              let host = components.host?.lowercased(), allowedHosts.contains(host)
         else { return 0 }
         let raw = components.queryItems?.first(where: { $0.name == "t" || $0.name == "start" })?.value ?? ""
         return min(parseTime(raw), 604_800)
