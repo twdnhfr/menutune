@@ -102,7 +102,13 @@ step "Universal-Build und Signatur"
 bash scripts/build-app.sh --universal --sign "$identity"
 
 app_dir="$PWD/build/MenuTune.app"
-out_dir="$PWD/build/release/MenuTune-$version-$revision"
+# An unnotarised build must not be able to sit next to a real one under a name
+# that looks just as publishable.
+if $notarize; then
+    out_dir="$PWD/build/release/MenuTune-$version-$revision"
+else
+    out_dir="$PWD/build/release/MenuTune-$version-$revision-unnotarisiert"
+fi
 dmg="$out_dir/MenuTune-$version-universal.dmg"
 rm -rf "$out_dir"
 mkdir -p "$out_dir"
