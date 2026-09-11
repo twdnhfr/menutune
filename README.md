@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Support/Brand/menutune-logo-256.png" alt="MenuTune-Logo" width="128" height="128">
+</p>
+
 # MenuTune
 
 Ein privater YouTube-Mini-Player für die macOS-Menüleiste. Öffne den Player per Klick, starte deine Musik und klappe das Menü wieder zu. Dieselbe WebView bleibt dabei bestehen.

@@ -4,6 +4,12 @@
 
 `scripts/build-app.sh` erzeugt daraus Standard- und Retina-Größen von 16 bis 1024 Pixeln und verpackt sie als `MenuTune.icns`. Das Original bleibt unverändert.
 
+`menutune-logo-256.png` ist eine daraus abgeleitete Web-Größe für den Kopf der Haupt-README. Sie existiert nur, damit die Repository-Seite nicht bei jedem Aufruf das knapp ein Megabyte große Original lädt. Neu erzeugen lässt sie sich mit:
+
+```sh
+sips -Z 256 Support/Brand/menutune-logo.png --out Support/Brand/menutune-logo-256.png
+```
+
 Erstellt am 11. September 2026 mit dem integrierten Imagegen-Tool. Stilreferenz: das bestehende DevWatch-Icon aus `Support/Brand/devwatch-logo.png` im DevWatch-Projekt.
 
 ## Entwurfsprompt
