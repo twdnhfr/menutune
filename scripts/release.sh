@@ -5,11 +5,48 @@
 #   bash scripts/release.sh --skip-notarize     everything except the Apple round trip
 #   bash scripts/release.sh --allow-dirty       release from an uncommitted tree
 #
-# Credentials are never read by this script. Store them once with:
-#   xcrun notarytool store-credentials menutune --apple-id <ID> --team-id <TEAM>
-# Override the defaults with MENUTUNE_SIGN_IDENTITY and MENUTUNE_NOTARY_PROFILE.
+# Settings live in scripts/release.env, which stays out of the repository;
+# scripts/release.env.example is the template. An environment variable of the
+# same name wins over the file. Credentials themselves are never read here:
+# notarytool keeps them in the keychain under the profile named below.
+#
+#   SIGN_IDENTITY   "Developer ID Application: … (TEAMID)"; without it the first
+#                   matching identity from the keychain is used
+#   NOTARY_PROFILE  name of the notarytool keychain profile; without it a
+#                   notarising run stops with instructions
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+# Deliberately not "source": the file is parsed, never executed.
+load_release_config() {
+    local file="$1" line key value
+    while IFS= read -r line || [ -n "$line" ]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        case "$line" in ''|'#'*) continue ;; esac
+        line="${line#export }"
+        key="${line%%=*}"
+        if [ "$key" = "$line" ]; then
+            printf '%s: Zeile ohne "=" übersprungen: %s\n' "$file" "$line" >&2
+            continue
+        fi
+        value="${line#*=}"
+        key="${key%"${key##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+        case "$value" in
+            \"*\") value="${value#\"}"; value="${value%\"}" ;;
+            \'*\') value="${value#\'}"; value="${value%\'}" ;;
+        esac
+        case "$key" in
+            SIGN_IDENTITY|NOTARY_PROFILE) ;;
+            *) printf '%s: unbekannter Schlüssel %s wird ignoriert\n' "$file" "$key" >&2; continue ;;
+        esac
+        [ -n "${!key+set}" ] || export "$key=$value"
+    done < "$file"
+}
+
+release_config="${MENUTUNE_RELEASE_ENV:-$PWD/scripts/release.env}"
+[ -f "$release_config" ] && load_release_config "$release_config"
 
 notarize=true
 allow_dirty=false
@@ -25,8 +62,8 @@ done
 step() { printf '\n==> %s\n' "$1"; }
 fail() { printf 'Fehler: %s\n' "$1" >&2; exit 1; }
 
-profile="${MENUTUNE_NOTARY_PROFILE:-menutune}"
-identity="${MENUTUNE_SIGN_IDENTITY:-}"
+profile="${NOTARY_PROFILE:-}"
+identity="${SIGN_IDENTITY:-}"
 if [ -z "$identity" ]; then
     identity="$(security find-identity -v -p codesigning \
         | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)".*/\1/')"
@@ -41,11 +78,15 @@ if ! $allow_dirty && [ -n "$(git status --porcelain)" ]; then
 fi
 
 if $notarize; then
-    # Checked before the long build so a missing credential costs seconds, not minutes.
-    if ! xcrun notarytool history --keychain-profile "$profile" --limit 1 >/dev/null 2>&1; then
-        fail "Kein nutzbares notarytool-Profil '$profile'. Einmalig anlegen mit:
-  xcrun notarytool store-credentials $profile --apple-id <deine Apple-ID> --team-id <dein Team>
+    [ -n "$profile" ] || fail "Kein NOTARY_PROFILE gesetzt. Vorlage kopieren und eintragen:
+  cp scripts/release.env.example scripts/release.env
+Ein Profil legst du einmalig an mit:
+  xcrun notarytool store-credentials <name> --apple-id <deine Apple-ID> --team-id <dein Team>
 Oder mit --skip-notarize alles andere bauen."
+    # Checked before the long build so a bad credential costs seconds, not minutes.
+    if ! xcrun notarytool history --keychain-profile "$profile" >/dev/null 2>&1; then
+        fail "Das notarytool-Profil '$profile' ist nicht nutzbar. Anlegen oder erneuern mit:
+  xcrun notarytool store-credentials $profile --apple-id <deine Apple-ID> --team-id <dein Team>"
     fi
     printf 'notarytool-Profil:  %s\n' "$profile"
 fi

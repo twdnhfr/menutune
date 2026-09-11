@@ -65,11 +65,13 @@ Der Test beginnt erst, wenn der Player sichtbar geöffnet ist; bei Bedarf das Me
 
 ## Veröffentlichung
 
-`scripts/release.sh` erzeugt ein notarisiertes, gestapeltes Universal-DMG. Die Zugangsdaten liest das Skript nie selbst; sie werden einmalig im Schlüsselbund hinterlegt:
+`scripts/release.sh` erzeugt ein notarisiertes, gestapeltes Universal-DMG. Die Zugangsdaten liest das Skript nie selbst; sie liegen im Schlüsselbund unter einem notarytool-Profil, das einmalig angelegt wird:
 
 ```sh
-xcrun notarytool store-credentials menutune --apple-id <deine Apple-ID> --team-id <dein Team>
+xcrun notarytool store-credentials <name> --apple-id <deine Apple-ID> --team-id <dein Team>
 ```
+
+Den Profilnamen trägst du in `scripts/release.env` ein, Vorlage ist `scripts/release.env.example`. Die Datei gehört nicht ins Repository; eine gesetzte Umgebungsvariable hat Vorrang. Optional lässt sich dort mit `SIGN_IDENTITY` eine bestimmte Signatur-Identität erzwingen, sonst wird die erste passende aus dem Schlüsselbund genommen.
 
 Danach genügt ein Aufruf. Das Skript prüft zuerst Zertifikat, sauberes Arbeitsverzeichnis und Notarisierungsprofil, bricht bei einem Problem sofort ab und baut erst danach:
 
