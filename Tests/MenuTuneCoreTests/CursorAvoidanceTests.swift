@@ -55,7 +55,7 @@ final class CursorAvoidanceTests: XCTestCase {
 
         var stationary = CursorAvoidance()
         XCTAssertNil(stationary.nextPosition(frames: frames, pointer: CGPoint(x: 260, y: 50), now: 1),
-                     "Ohne Bewegung liegt derselbe Zeiger außerhalb der Zone.")
+                     "Without movement the same pointer sits outside the zone.")
     }
 
     /// Mirror image: the candidate is safe for the pointer itself and only the
@@ -69,7 +69,7 @@ final class CursorAvoidanceTests: XCTestCase {
 
         var stationary = CursorAvoidance()
         XCTAssertEqual(stationary.nextPosition(frames: candidates, pointer: CGPoint(x: 150, y: 50), now: 1), 1,
-                       "Ohne Vorhersage ist das zweite Fenster ein sicheres Ziel.")
+                       "Without prediction the second frame is a safe target.")
     }
 
     func testCooldownSuppressesImmediateSecondMove() {

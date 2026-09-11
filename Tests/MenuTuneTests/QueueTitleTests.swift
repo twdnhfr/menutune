@@ -17,7 +17,7 @@ final class QueueTitleTests: XCTestCase {
             }
 
             var queue = PlaybackQueue()
-            let existing = queue.append(videoID: "czBc1UhZ3eU", title: "Ein Titel")
+            let existing = queue.append(videoID: "czBc1UhZ3eU", title: "A title")
             model.queue = queue
 
             model.input = "https://www.youtube.com/watch?v=czBc1UhZ3eU"
@@ -25,11 +25,11 @@ final class QueueTitleTests: XCTestCase {
 
             XCTAssertEqual(model.queue.items.count, 1)
             XCTAssertEqual(model.queue.items.first?.id, existing.id)
-            XCTAssertEqual(model.queue.items.first?.title, "Ein Titel",
-                           "Der bereits geladene Titel darf nicht durch die rohe Video-ID ersetzt werden.")
+            XCTAssertEqual(model.queue.items.first?.title, "A title",
+                           "The title already fetched must not fall back to the raw video id.")
             XCTAssertEqual(model.input, "")
-            XCTAssertNil(model.errorMessage, "Ein bekannter Titel ist kein Fehler.")
-            XCTAssertEqual(model.statusText, "Steht schon in der Warteschlange")
+            XCTAssertNil(model.errorMessage, "A link that is already queued is not an error.")
+            XCTAssertEqual(model.statusText, "Already in the queue")
         }
     }
 }

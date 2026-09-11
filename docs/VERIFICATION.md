@@ -1,91 +1,91 @@
-# Prüfung der ersten Version
+# Verification of the first version
 
-Stand: 10. September 2026, lokal auf Apple Silicon mit macOS 26.6.2. Mindestziel ist macOS 14; ältere macOS-Versionen wurden nicht separat praktisch geprüft.
+As of 11 September 2026, locally on Apple Silicon with macOS 26.6.2. The minimum target is macOS 14; older macOS versions were not exercised separately.
 
-## Automatisierte Tests
+## Automated tests
 
-`swift test`: **26 Tests, 0 Fehler** (einschließlich Pop-out-Erweiterung vom 11.09.2026 und Review-Korrekturen vom 11.09.2026).
+`swift test`: **28 tests, 0 failures**.
 
-Geprüft werden URL- und Zeitparameter, erlaubte Hosts, Clipboard-URL-Erkennung, Queue-Navigation und Wiederholung, Entfernen/Verschieben, atomare Speicherung und Umgang mit beschädigten Dateien. Ein zusätzlicher Test verwendet das echte AppModel mit einem privaten, benannten Pasteboard und einer temporären Bibliothek: Lesen allein verändert keine Wiedergabe/Queue, Bestätigung fügt genau einmal hinzu, Verwerfen bleibt für denselben Clipboard-Stand wirksam, neuer Clipboard-Inhalt wird neu geprüft. Die allgemeine Zwischenablage wird im Test nicht verändert.
+Covered are URL and time parameters, accepted hosts, clipboard link detection, queue navigation and repeat, removal and reordering, atomic storage and the handling of damaged files. One test drives the real AppModel with a private named pasteboard and a temporary library: reading alone changes neither playback nor queue, confirming adds exactly once, dismissing stays effective for the same clipboard generation, and new clipboard content is examined afresh. The general pasteboard is never touched by the test.
 
-Ein Test hängt die Oberfläche in ein echtes Fenster und prüft, dass die gemessene Inhaltshöhe dem Layout folgt und beim Aufklappen der Warteschlange wächst. Damit ist die Popover-Höhe nicht länger eine handgepflegte Kopie des Layouts.
+One test hosts the interface in a real window and checks that the measured content height follows the layout and grows when the queue is expanded. The popover height is therefore no longer a hand-kept copy of the layout.
 
-Aus dem Review vom 11.09.2026 kamen weitere Tests hinzu. Eine Bibliothek mit unbekanntem Wiederholungsmodus und fehlendem Titel bleibt lesbar, statt den ganzen Ladevorgang scheitern zu lassen. Ein zweites Exemplar desselben Links über das Eingabefeld übernimmt den bereits geladenen Titel. Die in der README zugesagte Garantie bei beschädigter Datei wird nun auf AppModel-Ebene geprüft: Warnung gesetzt, Weiterarbeit im Speicher möglich, Datei auf der Platte byteidentisch unverändert. Beim Verschieben ist erstmals der Zweig mit positivem Versatz abgedeckt, ebenso das Entfernen eines nicht ausgewählten Titels, das Entfernen des laufenden letzten Titels, "Zurück" auf dem ersten Titel ohne Wiederholung und die leere Warteschlange. Beim Längenlimit der Zwischenablage prüft ein Fall jetzt genau die Grenze statt einer ohnehin ungültigen Zeichenkette.
+Three tests guard the uniqueness of the queue: a known video creates no second entry and returns the existing one, the input field says so instead of staying silent, and an older library holding duplicates is merged on load, with a selection pointing at the dropped copy moved to the surviving entry. Counter-check: removing either the check on append or the merge on load fails three tests each.
 
-Zwei Tests decken erstmals die Bewegungsvorhersage der Ausweichlogik ab, einmal als alleiniger Auslöser eines Wechsels und einmal als alleiniger Grund, ein Ziel zu verwerfen. Gegenprobe: wird die Vorhersage im Quelltext neutralisiert, fallen genau diese beiden Tests um, alle übrigen bleiben grün. Der frühere Test `testStationaryPointerDoesNotCycleAfterMove` hieß irreführend, er prüfte nicht den Cooldown, sondern den Abstandswächter, und heißt jetzt danach.
+Further tests came out of the review on 11 September 2026. A library with an unknown repeat mode and a missing title stays readable instead of failing the whole load. A link that is already queued keeps the title already fetched. The guarantee the README makes for a damaged file is now checked end to end: the warning appears, work continues in memory, and the file on disk stays byte for byte what it was. Moving an entry down is covered for the first time, as are removing an entry that is not selected, removing the current last entry, stepping back from the first track without repeat, and both operations on an empty queue. The clipboard length limit is now hit by a link that is valid apart from its length, rather than a string that was never a URL.
 
-Drei Tests sichern die Eindeutigkeit der Warteschlange: ein bekanntes Video legt keinen zweiten Eintrag an und liefert den vorhandenen zurück, das Eingabefeld meldet das statt stumm zu bleiben, und eine ältere Bibliothek mit Doppelungen wird beim Laden zusammengeführt, wobei eine Auswahl auf der entfernten Kopie auf die verbliebene umgesetzt wird. Gegenprobe: wird die Prüfung beim Anhängen oder die Entdoppelung beim Laden entfernt, fallen jeweils drei Tests um.
+Two tests cover the pointer prediction of the avoidance logic, once as the only reason a move happens and once as the only reason a candidate is rejected. Counter-check: neutralising the prediction in the source fails exactly those two and nothing else. The former test named after a stationary pointer never checked the cooldown, only the proximity guard, and is now named after that.
 
-Die Unit-Tests erreichen youtube.com nicht mehr. Bisher lud jede AppModel-Instanz die IFrame-API in eine echte WebView, und das Bestätigen aus der Zwischenablage löste einen oEmbed-Abruf aus. Beide Pfade hängen jetzt an einem Schalter im Initialisierer, den ausschließlich die Tests auf aus stellen.
+The unit tests no longer reach youtube.com. Every AppModel used to pull the iframe API into a real web view, and accepting a clipboard suggestion resolved the title over the network. Both paths now hang off a single flag in the initialiser that only the tests turn off.
 
-Neun Tests prüfen die Ausweichlogik insgesamt: Annäherung, Reihenfolge sicherer Ziele, Bewegungsvorhersage in beide Richtungen, entfernter Zeiger nach einem Wechsel, Cooldown, fehlende sichere Ziele und negative Bildschirmkoordinaten. Ein Regressionstest prüft das Pendeln über die Mitte in beiden Richtungen (unten → Mitte → oben → Mitte → unten). Ein Host-Test stellt sicher, dass ein verspätetes Entfernen aus dem alten SwiftUI-Container die bereits ins schwebende Fenster verschobene WebView nicht entfernt. Der Speichertest deckt alle drei Größen sowie ältere Bibliotheken ohne Größenangabe ab.
+Nine tests cover the avoidance logic in total: approach, the order of safe targets, movement prediction in both directions, a pointer left behind after a move, the cooldown, the absence of safe targets, and negative screen coordinates. A regression test checks the swing through the middle in both directions, bottom to middle to top to middle to bottom. A host test makes sure a late removal from the old SwiftUI container does not remove a web view that has already moved into the floating window. The storage test covers all three sizes as well as older libraries without a size entry.
 
-## Test am echten YouTube-Player
+## Test against the real YouTube player
 
 Video: `https://www.youtube.com/watch?v=czBc1UhZ3eU&t=3s`
 
-Erfolgreicher Durchlauf vom 11.09.2026, 09:50–09:52 UTC, im **notarisierten Release-Bundle** und damit in genau dem Stand, der ausgeliefert wird. Er deckt auch die Korrekturen aus dem Review vom selben Tag ab:
+Successful run on 11 September 2026, 09:50–09:52 UTC, in the **notarised release bundle** and therefore in exactly the state that ships. It also covers the review fixes from the same day:
 
-| Prüfung | Ergebnis |
+| Check | Result |
 | --- | --- |
-| Start mit Zeitparameter | Wiedergabe ab ca. Sekunde 3 |
-| 30 Sekunden geschlossenes Popover | Zeit läuft weiter, alle sechs Stichproben unsichtbar und spielend |
-| Wieder öffnen | Wiedergabe bleibt erhalten |
-| Pause und Fortsetzen | Zeit bleibt bei Pause stehen; Status wechselt gelb/grün |
-| Automatischer Titelwechsel bei geschlossenem Popover | Nächster Queue-Eintrag startet |
-| Replay über den eingebetteten Player nach Queue-Ende | Status und Zeit bleiben synchron |
-| Simulierter Netzwerkfehler, danach Queue-Auswahl | Player lädt neu und spielt |
-| Simulierter Prozessfehler, Meldung schließen, Play | Player lädt neu und spielt |
-| Lautstärkeänderung im Webplayer | Wird ins AppModel übernommen |
+| Start with a time parameter | playback from about second 3 |
+| 30 seconds with the popover closed | time keeps running, all six samples invisible and playing |
+| Reopening | playback is preserved |
+| Pause and resume | time holds while paused; the status switches yellow and green |
+| Automatic track change with the popover closed | the next queue entry starts |
+| Replay through the embedded player after the queue ended | status and time stay in sync |
+| Simulated network failure, then a queue selection | the player reloads and plays |
+| Simulated process failure, dismiss the message, play | the player reloads and plays |
+| Volume change inside the web player | is taken over into the AppModel |
 
-Die Abschlusszeile aus `build/playback-final-smoke.log`:
+The closing line from `build/playback-final-smoke.log`:
 
 ```text
 SMOKE PASS: hidden=true pause=true resume=true automaticNext=true embeddedReplay=true recovery=true dismissedRecovery=true nativeVolume=true
 ```
 
-Sechs Stichproben bei geschlossenem Popover zeigen durchgehend `visible=false playing=true indicator=playing` mit fortlaufender Zeit. Der Statuspunkt bleibt beim Puffern jetzt erhalten, und Pause meldet `indicator=paused` statt wie früher zwischenzeitlich `idle`.
+Six samples with the popover closed consistently show `visible=false playing=true indicator=playing` with the time advancing. The status dot now survives buffering, and pause reports `indicator=paused` where it briefly reported `idle` before.
 
-Der Test wertet YouTubes Zustandsmeldungen und Fortschritt aus. WebKits Medienstatus wird zusätzlich protokolliert. Eine akustische Messung der Lautsprecher-/Kopfhörerausgabe ist nicht Teil des Tests.
+The test evaluates YouTube's state messages and progress. WebKit's media state is logged alongside. Measuring actual sound from speakers or headphones is not part of it.
 
-## Ausgeliefertes App-Bundle
+The test needs an interactive desktop session. In a non-interactive shell the popover never appears and the sequence never starts; the menu bar icon has to be clicked once.
 
-Am 11.09.2026 geprüft: mit verstecktem `.build`-Verzeichnis gestartet das Bundle sauber durch und der Player meldet `ready`. Vor der Korrektur brach derselbe Versuch sofort mit `Fatal error: could not load resource bundle` ab, weil SwiftPMs `Bundle.module` nur neben der ausführbaren Datei und danach an einem fest einkompilierten Build-Pfad sucht. `codesign --verify --strict` besteht weiterhin.
+Two fixes from 11 September 2026 are **not** covered by that run because it never triggers them: skipping a video the embed refuses, and picking up a YouTube recommendation started inside the player. Both need video material the test does not use.
 
-Der Test oben braucht eine interaktive Desktop-Sitzung. In einer nicht-interaktiven Shell erscheint das Popover nicht und die Sequenz startet gar nicht erst; das Menüleisten-Symbol muss einmal angeklickt werden.
+## The shipped app bundle
 
-Zwei Korrekturen vom 11.09.2026 sind auch durch diesen Durchlauf **nicht** abgedeckt, weil er sie nicht auslöst: das Überspringen eines für Embeds gesperrten Videos und die Übernahme einer im Player gestarteten YouTube-Empfehlung. Beide brauchen Videomaterial, das der Test nicht verwendet.
+Checked on 11 September 2026: with the `.build` directory hidden, the bundle starts cleanly and the player reports `ready`. Before the fix the same attempt aborted immediately with `Fatal error: could not load resource bundle`, because SwiftPM's `Bundle.module` looks only next to the executable and then at a hardcoded build path. `codesign --verify --strict` still passes.
 
-## Release-Weg
+## The release path
 
-`scripts/release.sh` ist am 11.09.2026 vollständig durchgelaufen, einschließlich der Notarisierung bei Apple. Beide Einreichungen wurden akzeptiert, App und Disk-Image tragen ihr Ticket.
+`scripts/release.sh` ran end to end on 11 September 2026, including notarisation with Apple. Both submissions were accepted; the app and the disk image each carry their ticket.
 
-| Prüfung | Ergebnis |
+| Check | Result |
 | --- | --- |
-| Universal-Build | `x86_64 arm64` |
-| Signatur | Developer ID, Hardened Runtime, sicherer Zeitstempel |
-| Entitlements | keine nötig; App startet und der Player meldet `ready` |
-| Notarisierung App | Accepted, Ticket angeheftet |
-| Notarisierung Disk-Image | Accepted, Ticket angeheftet |
-| Download mit Quarantäne-Flag | Gatekeeper: `accepted, source=Notarized Developer ID` |
-| App aus dem Image herausgezogen | akzeptiert, Ticket bleibt angeheftet, startet |
+| Universal build | `x86_64 arm64` |
+| Signature | Developer ID, hardened runtime, secure timestamp |
+| Entitlements | none required; the app starts and the player reports `ready` |
+| Notarisation of the app | accepted, ticket stapled |
+| Notarisation of the disk image | accepted, ticket stapled |
+| Download carrying the quarantine flag | Gatekeeper: `accepted, source=Notarized Developer ID` |
+| App dragged out of the image | accepted, ticket travels with the copy, starts |
 
-Die Gegenprobe hat den Download nachgestellt: Quarantäne-Attribut auf das Image gesetzt, eingehängt, App herauskopiert, geprüft und gestartet. Genau diesen Weg gehen Besucher der Website. Damit ist der frühere Zustand behoben, in dem sowohl die älteren DMGs unter `build/production` als auch jeder lokale Build unnotarisiert und damit von Gatekeeper abgewiesen waren.
+The counter-check reproduced the download: quarantine attribute set on the image, mounted, app copied out, verified and started. That is exactly the path a website visitor takes. This closes the earlier state in which both the older DMGs under `build/production` and every local build were unnotarised and therefore rejected by Gatekeeper.
 
-Die Vorprüfungen des Skripts brechen mit Rückgabewert 1 ab, bevor gebaut wird: unsauberes Arbeitsverzeichnis ohne `--allow-dirty`, fehlendes oder unbrauchbares notarytool-Profil.
+The script's preflight checks exit with status 1 before anything is built: an unclean working tree without `--allow-dirty`, and a missing or unusable notarytool profile.
 
-## Bedienprüfung
+## Manual checks
 
-- Laufende native Oberfläche visuell geprüft.
-- Video nutzt die gesamte Breite am oberen Rand; separate Wiedergaberegler entfernt.
-- Titelaktionen sind allein über den nativen Menüpfeil erreichbar; Öffnen des Menüs praktisch geprüft.
-- Normaler Neustart erhält beide gespeicherten Titel, zeigt das ausgewählte Video ohne Autoplay und erlaubt den direkten Start über den eingebetteten Player.
-- Globaler Hotkey `⌘⇧Y` zum Öffnen/Schließen ergänzt. Der Nutzer hat die Funktion am 10.09.2026 mit seiner Tastatur ausdrücklich bestätigt. Hotkey-Verhalten wird nicht separat automatisiert abgedeckt.
-- Standard- und Mini-Ansicht visuell geprüft; Hin- und Rückwechsel am laufenden Video geprüft. Die Mini-Auswahl steht anschließend tatsächlich in der lokalen Bibliothek. Ein zusätzlicher Test prüft Größenpersistenz und Migration bestehender Bibliotheken mit Erhalt von Queue und Lautstärke.
-- Mini auf Wunsch auf 192 × 108 Punkte für das Video vergrößert; ganzzahlige Abmessungen ersetzen die ursprüngliche Drittelbreite. Die aktualisierte Ansicht wurde erneut visuell geprüft.
-- YouTube-Link über das native Clipboard-Paste eingefügt: Eingabefeld enthält anschließend den vollständigen Link, Plus-Schaltfläche wird aktiv.
-- `⌘A` und Löschen im Eingabefeld praktisch geprüft.
-- Pop-out am 11.09.2026 visuell geprüft: rahmenloses Video im schwebenden Fenster. Die neue mittlere Größe (320 × 180 Punkte) wurde in der laufenden App bestätigt; `medium` steht anschließend in der lokalen Bibliothek. Vollbild-Spaces und ein Wechsel zwischen mehreren Monitoren wurden nicht praktisch geprüft.
-- Der Build erstellt ein ad-hoc signiertes Bundle; `codesign --verify --strict` besteht.
+- The running native interface was inspected visually.
+- The video uses the full width along the top edge; separate playback controls were removed.
+- Track actions are reachable solely through the native menu arrow; opening that menu was exercised.
+- A normal restart preserves both saved tracks, shows the selected video without autoplay, and allows a direct start through the embedded player.
+- The global shortcut `⌘⇧Y` was added for opening and closing. The user confirmed it explicitly on their own keyboard on 10 September 2026. Shortcut behaviour is not covered by automated tests.
+- Standard and Mini were inspected visually; switching back and forth during playback was exercised. The Mini choice then really is in the local library. An additional test covers size persistence and the migration of existing libraries while keeping queue and volume.
+- Mini was enlarged to 192 × 108 points of video on request; whole-number dimensions replaced the original third-of-width. The updated view was inspected again.
+- A YouTube link was pasted through the native clipboard: the input field then holds the complete link and the plus button becomes active.
+- `⌘A` and deleting in the input field were exercised.
+- The pop-out was inspected visually on 11 September 2026: a borderless video in a floating window. The new medium size, 320 × 180 points, was confirmed in the running app, and `medium` then really is in the local library. Full-screen spaces and switching between several displays were not exercised.
+- The build produces an ad-hoc signed bundle locally; `codesign --verify --strict` passes.
 
-Die Erkennung/Bestätigung aus der Zwischenablage wurde nach dem Wiedergabetest ergänzt und durch den vollständigen Testlauf geprüft. Ein Langzeittest über mehrere Stunden, sämtliche YouTube-Videoarten und ältere macOS-Versionen sind nicht abgedeckt.
+Clipboard detection and confirmation were added after the playback test and were covered by the full run. A long-running test over several hours, every kind of YouTube video, and older macOS versions are not covered.

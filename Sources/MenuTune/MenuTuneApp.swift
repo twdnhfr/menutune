@@ -18,20 +18,20 @@ enum MenuTuneApp {
         let main = NSMenu()
         let appItem = NSMenuItem()
         let appMenu = NSMenu(title: "MenuTune")
-        appMenu.addItem(withTitle: "MenuTune beenden", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit MenuTune", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
 
         let editItem = NSMenuItem()
-        let edit = NSMenu(title: "Bearbeiten")
-        edit.addItem(withTitle: "Rückgängig", action: Selector(("undo:")), keyEquivalent: "z")
-        let redo = edit.addItem(withTitle: "Wiederholen", action: Selector(("redo:")), keyEquivalent: "z")
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
         redo.keyEquivalentModifierMask = [.command, .shift]
         edit.addItem(.separator())
-        edit.addItem(withTitle: "Ausschneiden", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "Kopieren", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "Einfügen", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "Alles auswählen", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = edit
         main.addItem(editItem)
         return main
@@ -52,7 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .first(where: { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }) {
             // Quitting silently is right for a double launch, but a test run has
             // to say why it produced no result at all.
-            if isSmokeTest { Self.log("SMOKE FAIL: MenuTune läuft bereits, der Test wurde nicht gestartet.") }
+            if isSmokeTest { Self.log("SMOKE FAIL: MenuTune is already running, the test did not start.") }
             existing.activate(options: [])
             NSApp.terminate(nil)
             return
@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let libraryArgument = argument("--library")
         // The test appends and removes entries, so it must never touch the real one.
         if isSmokeTest && libraryArgument == nil {
-            Self.log("SMOKE FAIL: --smoke-test verändert die Warteschlange und verlangt deshalb --library.")
+            Self.log("SMOKE FAIL: --smoke-test rewrites the queue and therefore requires --library.")
             NSApp.terminate(nil)
             return
         }

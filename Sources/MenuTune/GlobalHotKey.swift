@@ -63,7 +63,7 @@ final class GlobalHotKey {
         observeKeyboardLayoutChanges()
 
         guard let keyCode = Self.logicalYKeyCode() else {
-            onError("Globaler Shortcut konnte wegen der Tastaturbelegung nicht eingerichtet werden.")
+            onError("The global shortcut could not be set up for this keyboard layout.")
             return
         }
 
@@ -172,9 +172,9 @@ final class GlobalHotKey {
 
     private static func errorMessage(for status: OSStatus) -> String {
         if status == OSStatus(eventHotKeyExistsErr) {
-            return "Globaler Shortcut ⌘⇧Y ist bereits belegt."
+            return "The global shortcut ⌘⇧Y is already taken."
         }
-        return "Globaler Shortcut ⌘⇧Y konnte nicht eingerichtet werden (Fehler \(status))."
+        return "The global shortcut ⌘⇧Y could not be set up (error \(status))."
     }
 }
 

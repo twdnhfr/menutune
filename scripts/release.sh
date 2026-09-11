@@ -26,7 +26,7 @@ load_release_config() {
         line="${line#export }"
         key="${line%%=*}"
         if [ "$key" = "$line" ]; then
-            printf '%s: Zeile ohne "=" übersprungen: %s\n' "$file" "$line" >&2
+            printf '%s: skipped a line without "=": %s\n' "$file" "$line" >&2
             continue
         fi
         value="${line#*=}"
@@ -39,7 +39,7 @@ load_release_config() {
         esac
         case "$key" in
             SIGN_IDENTITY|NOTARY_PROFILE) ;;
-            *) printf '%s: unbekannter Schlüssel %s wird ignoriert\n' "$file" "$key" >&2; continue ;;
+            *) printf '%s: ignoring unknown key %s\n' "$file" "$key" >&2; continue ;;
         esac
         [ -n "${!key+set}" ] || export "$key=$value"
     done < "$file"
@@ -54,13 +54,13 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --skip-notarize) notarize=false ;;
         --allow-dirty) allow_dirty=true ;;
-        *) printf 'Fehler: unbekanntes Argument %s\n' "$1" >&2; exit 2 ;;
+        *) printf 'Error: unknown argument %s\n' "$1" >&2; exit 2 ;;
     esac
     shift
 done
 
 step() { printf '\n==> %s\n' "$1"; }
-fail() { printf 'Fehler: %s\n' "$1" >&2; exit 1; }
+fail() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 
 profile="${NOTARY_PROFILE:-}"
 identity="${SIGN_IDENTITY:-}"
@@ -69,36 +69,36 @@ if [ -z "$identity" ]; then
         | grep 'Developer ID Application' | head -1 | sed -E 's/.*"(.*)".*/\1/')"
 fi
 
-step "Vorprüfung"
-[ -n "$identity" ] || fail "Kein 'Developer ID Application'-Zertifikat gefunden. Ohne das ist keine Veröffentlichung möglich."
-printf 'Signatur-Identität: %s\n' "$identity"
+step "Preflight"
+[ -n "$identity" ] || fail "No 'Developer ID Application' certificate found. Publishing is not possible without one."
+printf 'Signing identity:  %s\n' "$identity"
 
 if ! $allow_dirty && [ -n "$(git status --porcelain)" ]; then
-    fail "Das Arbeitsverzeichnis ist nicht sauber. Ein Release soll aus einem Commit reproduzierbar sein. Mit --allow-dirty überspringen."
+    fail "The working tree is not clean. A release should be reproducible from a commit. Use --allow-dirty to skip this check."
 fi
 
 if $notarize; then
-    [ -n "$profile" ] || fail "Kein NOTARY_PROFILE gesetzt. Vorlage kopieren und eintragen:
+    [ -n "$profile" ] || fail "NOTARY_PROFILE is not set. Copy the template and fill it in:
   cp scripts/release.env.example scripts/release.env
-Ein Profil legst du einmalig an mit:
-  xcrun notarytool store-credentials <name> --apple-id <deine Apple-ID> --team-id <dein Team>
-Oder mit --skip-notarize alles andere bauen."
+Create a profile once with:
+  xcrun notarytool store-credentials <name> --apple-id <your Apple ID> --team-id <your team>
+Or build everything else with --skip-notarize."
     # Checked before the long build so a bad credential costs seconds, not minutes.
     if ! xcrun notarytool history --keychain-profile "$profile" >/dev/null 2>&1; then
-        fail "Das notarytool-Profil '$profile' ist nicht nutzbar. Anlegen oder erneuern mit:
-  xcrun notarytool store-credentials $profile --apple-id <deine Apple-ID> --team-id <dein Team>"
+        fail "The notarytool profile '$profile' is not usable. Create or refresh it with:
+  xcrun notarytool store-credentials $profile --apple-id <your Apple ID> --team-id <your team>"
     fi
-    printf 'notarytool-Profil:  %s\n' "$profile"
+    printf 'notarytool profile: %s\n' "$profile"
 fi
 
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Support/Info.plist)"
 revision="$(git rev-parse --short HEAD)"
-printf 'Version:            %s (%s)\n' "$version" "$revision"
+printf 'Version:           %s (%s)\n' "$version" "$revision"
 
 step "Tests"
 swift test
 
-step "Universal-Build und Signatur"
+step "Universal build and signature"
 bash scripts/build-app.sh --universal --sign "$identity"
 
 app_dir="$PWD/build/MenuTune.app"
@@ -107,7 +107,7 @@ app_dir="$PWD/build/MenuTune.app"
 if $notarize; then
     out_dir="$PWD/build/release/MenuTune-$version-$revision"
 else
-    out_dir="$PWD/build/release/MenuTune-$version-$revision-unnotarisiert"
+    out_dir="$PWD/build/release/MenuTune-$version-$revision-unnotarized"
 fi
 dmg="$out_dir/MenuTune-$version-universal.dmg"
 rm -rf "$out_dir"
@@ -116,11 +116,11 @@ mkdir -p "$out_dir"
 archs="$(lipo -archs "$app_dir/Contents/MacOS/MenuTune")"
 case "$archs" in
     *x86_64*arm64*|*arm64*x86_64*) ;;
-    *) fail "Das Binary ist nicht universal, gefunden: $archs" ;;
+    *) fail "The binary is not universal, found: $archs" ;;
 esac
 
 if $notarize; then
-    step "App notarisieren"
+    step "Notarise the app"
     # The app carries its own ticket too, so an installation stays verifiable
     # offline once it has been dragged out of the disk image.
     zip="$out_dir/MenuTune.zip"
@@ -130,7 +130,7 @@ if $notarize; then
     rm -f "$zip"
 fi
 
-step "Disk-Image bauen"
+step "Build the disk image"
 staging="$PWD/build/dmg-staging"
 rm -rf "$staging"
 mkdir -p "$staging"
@@ -141,22 +141,22 @@ rm -rf "$staging"
 codesign --force --sign "$identity" --timestamp "$dmg"
 
 if $notarize; then
-    step "Disk-Image notarisieren"
+    step "Notarise the disk image"
     xcrun notarytool submit "$dmg" --keychain-profile "$profile" --wait
     xcrun stapler staple "$dmg"
 fi
 
-step "Abschlussprüfung"
+step "Final check"
 codesign --verify --strict --deep "$app_dir"
 codesign --verify --strict "$dmg"
 if $notarize; then
     # This is the verdict a visitor's Mac will reach after downloading.
     spctl -a -vvv -t exec "$app_dir"
     spctl -a -vvv -t open --context context:primary-signature "$dmg"
-    printf '\nGatekeeper akzeptiert App und Disk-Image.\n'
+    printf '\nGatekeeper accepts both the app and the disk image.\n'
 else
-    printf '\nOhne Notarisierung gebaut: Gatekeeper weist das Ergebnis ab. Nicht veröffentlichen.\n'
+    printf '\nBuilt without notarisation: Gatekeeper rejects this. Do not publish it.\n'
 fi
 
-printf '\nFertig: %s\n' "$dmg"
-printf 'Größe:  %s\n' "$(du -h "$dmg" | cut -f1)"
+printf '\nDone:  %s\n' "$dmg"
+printf 'Size:  %s\n' "$(du -h "$dmg" | cut -f1)"

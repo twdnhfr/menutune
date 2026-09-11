@@ -1,18 +1,20 @@
-# MenuTune-Logo
+# MenuTune logo
 
-`menutune-logo.png` ist das transparente Original und die Quelle für das macOS-App-Icon. Die dunkle Graphit-Kachel, die plastische weiße Audio-Wellenform und der violette Akzent greifen den Stil von DevWatch auf. Der violette Punkt ist ein festes Markenelement. Der Wiedergabestatus in der Menüleiste wird weiterhin separat grün oder gelb angezeigt.
+`menutune-logo.png` is the transparent master and the source for the macOS app icon. The dark graphite tile, the dimensional white audio waveform and the violet accent pick up the style of DevWatch. The violet dot is a fixed brand element. The playback state in the menu bar is still shown separately in green or yellow.
 
-`scripts/build-app.sh` erzeugt daraus Standard- und Retina-Größen von 16 bis 1024 Pixeln und verpackt sie als `MenuTune.icns`. Das Original bleibt unverändert.
+`scripts/build-app.sh` derives standard and retina sizes from 16 to 1024 pixels from it and packs them into `MenuTune.icns`. The master stays untouched.
 
-`menutune-logo-256.png` ist eine daraus abgeleitete Web-Größe für den Kopf der Haupt-README. Sie existiert nur, damit die Repository-Seite nicht bei jedem Aufruf das knapp ein Megabyte große Original lädt. Neu erzeugen lässt sie sich mit:
+`menutune-logo-256.png` is a web-sized derivative for the header of the main README. It exists only so the repository page does not pull the roughly one megabyte master on every visit. Regenerate it with:
 
 ```sh
 sips -Z 256 Support/Brand/menutune-logo.png --out Support/Brand/menutune-logo-256.png
 ```
 
-Erstellt am 11. September 2026 mit dem integrierten Imagegen-Tool. Stilreferenz: das bestehende DevWatch-Icon aus `Support/Brand/devwatch-logo.png` im DevWatch-Projekt.
+Created on 11 September 2026 with the built-in imagegen tool. Style reference: the existing DevWatch icon at `Support/Brand/devwatch-logo.png` in the DevWatch project.
 
-## Entwurfsprompt
+The prompts below are kept verbatim as the record of how the asset was produced.
+
+## Design prompt
 
 Use case: logo-brand.
 Asset type: production macOS application icon for MenuTune, a minimalist menu-bar music/video player.
@@ -23,7 +25,7 @@ Replace the green circular indicator with a smaller softly illuminated violet-pu
 Remove all terminal glyphs completely. No text, letters, headphones, triangle play symbol, musical notes, extra badges, decorative particles, cables or surrounding scene.
 Composition: exactly one square app icon, straight-on with no perspective tilt, same tile shape and roughly the same transparent margin as the input; all four corners visible. Crisp clean geometry with refined 3D depth and subtle shadows. No cast shadow extending far beyond the tile, no fake checkerboard, actual alpha transparency outside the tile. Output a 1024 x 1024 PNG suitable as a master macOS icon.
 
-## Finaler Bearbeitungsprompt
+## Final edit prompt
 
 Use case: background-extraction.
 Edit only the background of this MenuTune macOS app icon. The current gray-and-white checker pattern is accidentally painted into the image: completely remove that entire patterned background and replace it with genuinely transparent pixels in the PNG alpha channel.

@@ -87,10 +87,10 @@ final class PlaybackQueueTests: XCTestCase {
     func testASecondCopyOfTheSameVideoIsNeverAdded() {
         var queue = PlaybackQueue()
         let first = queue.append(videoID: "aaaaaaaaaaa", title: "A")
-        let again = queue.append(videoID: "aaaaaaaaaaa", title: "Anderer Titel")
+        let again = queue.append(videoID: "aaaaaaaaaaa", title: "A different title")
         XCTAssertEqual(queue.items.count, 1)
-        XCTAssertEqual(again, first, "Der vorhandene Eintrag wird zurückgegeben, nicht ein neuer.")
-        XCTAssertEqual(queue.items.first?.title, "A", "Der bereits geladene Titel bleibt stehen.")
+        XCTAssertEqual(again, first, "The existing entry is returned, not a new one.")
+        XCTAssertEqual(queue.items.first?.title, "A", "The title already fetched is kept.")
         XCTAssertTrue(queue.contains(videoID: "aaaaaaaaaaa"))
         XCTAssertFalse(queue.contains(videoID: "bbbbbbbbbbb"))
     }
@@ -121,7 +121,7 @@ final class PlaybackQueueTests: XCTestCase {
     func testEdgesWithoutRepeatAndOnAnEmptyQueue() {
         var (queue, first, _, _) = queue()
         XCTAssertTrue(queue.select(first.id))
-        XCTAssertNil(queue.previous(), "Ohne Wiederholung darf der erste Titel nicht ans Ende springen.")
+        XCTAssertNil(queue.previous(), "Without repeat, the first track must not wrap to the end.")
         XCTAssertEqual(queue.currentItemID, first.id)
 
         var empty = PlaybackQueue()
@@ -137,8 +137,8 @@ final class PlaybackQueueTests: XCTestCase {
         XCTAssertEqual(queue.currentItemID, third.id)
         queue.move(third.id, by: -10)
         XCTAssertEqual(queue.items.map(\.id), [third.id, first.id])
-        queue.updateTitle(videoID: "aaaaaaaaaaa", title: "neu")
-        XCTAssertEqual(queue.items.map(\.title), ["C", "neu"])
+        queue.updateTitle(videoID: "aaaaaaaaaaa", title: "new")
+        XCTAssertEqual(queue.items.map(\.title), ["C", "new"])
         queue.remove(third.id)
         queue.remove(first.id)
         XCTAssertNil(queue.currentItemID)
@@ -212,7 +212,7 @@ final class LibraryStoreTests: XCTestCase {
                 "items": [
                     ["id": keptID.uuidString, "videoID": "aaaaaaaaaaa", "title": "A"],
                     ["id": otherID.uuidString, "videoID": "bbbbbbbbbbb", "title": "B"],
-                    ["id": droppedID.uuidString, "videoID": "aaaaaaaaaaa", "title": "A nochmal"]
+                    ["id": droppedID.uuidString, "videoID": "aaaaaaaaaaa", "title": "A again"]
                 ]
             ]
         ]
@@ -220,9 +220,9 @@ final class LibraryStoreTests: XCTestCase {
 
         let restored = try store.load()
         XCTAssertEqual(restored.queue.items.map(\.videoID), ["aaaaaaaaaaa", "bbbbbbbbbbb"])
-        XCTAssertEqual(restored.queue.items.map(\.title), ["A", "B"], "Die erste Fassung gewinnt.")
+        XCTAssertEqual(restored.queue.items.map(\.title), ["A", "B"], "The first occurrence wins.")
         XCTAssertEqual(restored.queue.currentItemID, keptID,
-                       "Die Auswahl zeigte auf die entfernte Kopie und muss auf die verbliebene zeigen.")
+                       "The selection pointed at the dropped copy and must move to the surviving one.")
         XCTAssertEqual(restored.queue.repeatMode, .all)
     }
 

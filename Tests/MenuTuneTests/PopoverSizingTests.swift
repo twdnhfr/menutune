@@ -18,7 +18,7 @@ final class PopoverSizingTests: XCTestCase {
         }
 
         var queue = PlaybackQueue()
-        for index in 0..<3 { _ = queue.append(videoID: "aaaaaaaaaa\(index)", title: "Titel \(index)") }
+        for index in 0..<3 { _ = queue.append(videoID: "aaaaaaaaaa\(index)", title: "Track \(index)") }
         model.queue = queue
         model.isQueueExpanded = false
 
@@ -29,12 +29,12 @@ final class PopoverSizingTests: XCTestCase {
         window.contentView = hosting
 
         let collapsed = try await settledContentHeight(hosting)
-        XCTAssertGreaterThan(collapsed, 60, "Die zugeklappte Ansicht braucht Platz für Titel, Eingabe und Kopfzeile.")
+        XCTAssertGreaterThan(collapsed, 60, "The collapsed view still needs room for title, input and header.")
         XCTAssertLessThan(collapsed, 300)
 
         model.isQueueExpanded = true
         let expanded = try await settledContentHeight(hosting)
-        XCTAssertGreaterThan(expanded, collapsed + 40, "Die aufgeklappte Liste muss die gemessene Höhe erhöhen.")
+        XCTAssertGreaterThan(expanded, collapsed + 40, "Expanding the queue has to increase the measured height.")
     }
 
     /// SwiftUI reports the height through a preference, which reaches the model

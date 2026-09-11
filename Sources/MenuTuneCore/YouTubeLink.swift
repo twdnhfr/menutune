@@ -6,8 +6,8 @@ public enum YouTubeLinkError: Error, LocalizedError, Equatable, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidLink: return "Der YouTube-Link ist ungültig."
-        case .invalidVideoID: return "Die YouTube-Video-ID ist ungültig."
+        case .invalidLink: return "That is not a valid YouTube link."
+        case .invalidVideoID: return "That is not a valid YouTube video id."
         }
     }
 }

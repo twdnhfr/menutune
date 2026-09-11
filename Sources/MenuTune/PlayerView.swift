@@ -77,11 +77,11 @@ struct PlayerView: View {
                         .foregroundStyle(.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Button("Erneut versuchen") { model.togglePlayback() }
+                        Button("Try Again") { model.togglePlayback() }
                             .font(.caption.weight(.medium))
                             .buttonStyle(.borderless)
                     } else {
-                        Button("Erneut versuchen") { model.addInput(playImmediately: true) }
+                        Button("Try Again") { model.addInput(playImmediately: true) }
                             .font(.caption.weight(.medium))
                             .buttonStyle(.borderless)
                     }
@@ -92,7 +92,7 @@ struct PlayerView: View {
                             .font(.caption.weight(.bold))
                     }
                     .buttonStyle(.borderless)
-                    .accessibilityLabel("Fehlermeldung schließen")
+                    .accessibilityLabel("Dismiss error")
                 }
                 .padding(9)
                 .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
@@ -131,30 +131,30 @@ struct PlayerView: View {
                     Button {
                         model.onTogglePopOut?()
                     } label: {
-                        Label("Video zurückholen", systemImage: "pip.exit")
+                        Label("Put video back", systemImage: "pip.exit")
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.white.opacity(0.9))
                     }
                     .buttonStyle(.borderless)
-                    .help("Video zurück in die Menüleiste holen")
+                    .help("Put the video back into the menu bar")
                 } else if model.queue.currentItem == nil {
                     if model.playerSize == .mini {
                         Button {
                             model.playerSize = .standard
                         } label: {
-                            Label("Standardansicht öffnen", systemImage: "arrow.up.left.and.arrow.down.right")
+                            Label("Open the standard size", systemImage: "arrow.up.left.and.arrow.down.right")
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.white.opacity(0.88))
                         }
                         .buttonStyle(.borderless)
-                        .help("Standardansicht öffnen")
+                        .help("Open the standard size")
                         .shadow(radius: 4)
                     } else {
                         VStack(spacing: 8) {
                             Image(systemName: "play.rectangle.fill")
                                 .font(.title2)
                                 .foregroundStyle(.white.opacity(0.7))
-                            Text("Füge einen YouTube-Link hinzu")
+                            Text("Add a YouTube link")
                                 .font(.callout.weight(.medium))
                                 .foregroundStyle(.white.opacity(0.82))
                         }
@@ -162,7 +162,7 @@ struct PlayerView: View {
                     }
                 }
             }
-            .accessibilityLabel("YouTube-Player")
+            .accessibilityLabel("YouTube player")
     }
 
     private var titleRow: some View {
@@ -174,7 +174,7 @@ struct PlayerView: View {
                         .lineLimit(2)
                         .accessibilityAddTraits(.isHeader)
                 } else {
-                    Text("Bereit für deine Musik")
+                    Text("Ready when you are")
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
@@ -182,7 +182,7 @@ struct PlayerView: View {
                     if model.isLoading {
                         ProgressView()
                             .controlSize(.mini)
-                            .accessibilityLabel("Lädt")
+                            .accessibilityLabel("Loading")
                     }
                     Text(model.statusText)
                         .font(.caption)
@@ -200,17 +200,17 @@ struct PlayerView: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(.borderless)
-            .help("Menü schließen (⌘⇧Y)")
-            .accessibilityLabel("Menü schließen")
+            .help("Close the menu (⌘⇧Y)")
+            .accessibilityLabel("Close the menu")
         }
     }
 
     private var addBar: some View {
         HStack(spacing: 8) {
-            TextField("YouTube-Link einfügen …", text: $model.input)
+            TextField("Paste a YouTube link …", text: $model.input)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { model.addInput(playImmediately: true) }
-                .accessibilityLabel("YouTube-Link")
+                .accessibilityLabel("YouTube link")
 
             Button {
                 model.addInput()
@@ -221,8 +221,8 @@ struct PlayerView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
-            .help("Zur Warteschlange hinzufügen")
-            .accessibilityLabel("Zur Warteschlange hinzufügen")
+            .help("Add to the queue")
+            .accessibilityLabel("Add to the queue")
             .disabled(model.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
         }
@@ -234,7 +234,7 @@ struct PlayerView: View {
                 .font(.caption)
                 .foregroundStyle(purple)
 
-            Text("YouTube-Link in der Zwischenablage")
+            Text("YouTube link on the clipboard")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -249,8 +249,8 @@ struct PlayerView: View {
             }
             .buttonStyle(.borderless)
             .foregroundStyle(purple)
-            .help("Zur Warteschlange übernehmen")
-            .accessibilityLabel("Zur Warteschlange übernehmen")
+            .help("Add it to the queue")
+            .accessibilityLabel("Add it to the queue")
 
             Button {
                 model.dismissClipboardSuggestion()
@@ -261,8 +261,8 @@ struct PlayerView: View {
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            .help("Vorschlag verwerfen")
-            .accessibilityLabel("Vorschlag verwerfen")
+            .help("Dismiss the suggestion")
+            .accessibilityLabel("Dismiss the suggestion")
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
@@ -281,7 +281,7 @@ struct PlayerView: View {
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .frame(width: 10)
-                        Text("Warteschlange")
+                        Text("Queue")
                             .font(.subheadline.weight(.semibold))
                         Text("\(model.queue.items.count)")
                             .font(.caption.weight(.medium).monospacedDigit())
@@ -294,20 +294,20 @@ struct PlayerView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Warteschlange, \(model.queue.items.count) Titel")
-                .accessibilityValue(model.isQueueExpanded ? "Aufgeklappt" : "Zugeklappt")
-                .help(model.isQueueExpanded ? "Warteschlange zuklappen" : "Warteschlange aufklappen")
+                .accessibilityLabel("Queue, \(model.queue.items.count) tracks")
+                .accessibilityValue(model.isQueueExpanded ? "Expanded" : "Collapsed")
+                .help(model.isQueueExpanded ? "Collapse the queue" : "Expand the queue")
                 Menu {
-                    Button("Wiederholen: Aus") { model.setRepeat(.off) }
-                    Button("Wiederholen: Alle") { model.setRepeat(.all) }
-                    Button("Wiederholen: Titel") { model.setRepeat(.one) }
+                    Button("Repeat: Off") { model.setRepeat(.off) }
+                    Button("Repeat: All") { model.setRepeat(.all) }
+                    Button("Repeat: Track") { model.setRepeat(.one) }
                 } label: {
                     Image(systemName: repeatIcon)
                         .foregroundStyle(model.queue.repeatMode == .off ? .secondary : purple)
                         .frame(width: 23, height: 23)
                 }
                 .menuStyle(.borderlessButton)
-                .accessibilityLabel("Wiederholung: \(repeatLabel)")
+                .accessibilityLabel("Repeat: \(repeatLabel)")
             }
 
             if model.isQueueExpanded {
@@ -323,10 +323,10 @@ struct PlayerView: View {
                 Image(systemName: "music.note.list")
                     .font(.title3)
                     .foregroundStyle(purple.opacity(0.8))
-                Text("Deine Musik. Ein Klick entfernt.")
+                Text("Your music. One click away.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                Text("Füge oben einen YouTube-Link hinzu.")
+                Text("Add a YouTube link above.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
@@ -363,21 +363,21 @@ struct PlayerView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(item.title), \(selected ? "ausgewählt" : "abspielen")")
+            .accessibilityLabel("\(item.title), \(selected ? "selected" : "play")")
 
             Menu("") {
-                Button("Abspielen") { model.play(item) }
+                Button("Play") { model.play(item) }
                 Divider()
-                Button("Nach oben") { model.move(item, by: -1) }
+                Button("Move Up") { model.move(item, by: -1) }
                     .disabled(index == 0)
-                Button("Nach unten") { model.move(item, by: 1) }
+                Button("Move Down") { model.move(item, by: 1) }
                     .disabled(index == model.queue.items.count - 1)
                 Divider()
-                Button("Entfernen", role: .destructive) { model.remove(item) }
+                Button("Remove", role: .destructive) { model.remove(item) }
             }
             .menuStyle(.borderlessButton)
             .frame(width: 26, height: 26)
-            .accessibilityLabel("Aktionen für \(item.title)")
+            .accessibilityLabel("Actions for \(item.title)")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -395,8 +395,8 @@ struct PlayerView: View {
                     .frame(width: 26, height: 26)
             }
             .buttonStyle(.borderless)
-            .help(model.isPoppedOut ? "Video zurückholen" : "Video auskoppeln – weicht der Maus aus")
-            .accessibilityLabel(model.isPoppedOut ? "Video zurückholen" : "Video auskoppeln")
+            .help(model.isPoppedOut ? "Put the video back" : "Pop the video out, it dodges the pointer")
+            .accessibilityLabel(model.isPoppedOut ? "Put the video back" : "Pop the video out")
             .disabled(model.currentItem == nil)
             Spacer()
             playerSizeControl
@@ -411,7 +411,7 @@ struct PlayerView: View {
             sizeButton("Standard", isSelected: model.playerSize == .standard) {
                 model.playerSize = .standard
             }
-            sizeButton("Mittel", isSelected: model.playerSize == .medium) {
+            sizeButton("Medium", isSelected: model.playerSize == .medium) {
                 model.playerSize = .medium
             }
             sizeButton("Mini", isSelected: model.playerSize == .mini) {
@@ -421,7 +421,7 @@ struct PlayerView: View {
         .padding(2)
         .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Playergröße")
+        .accessibilityLabel("Player size")
     }
 
     private func sizeButton(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -446,9 +446,9 @@ struct PlayerView: View {
 
     private var repeatLabel: String {
         switch model.queue.repeatMode {
-        case .off: return "Aus"
-        case .all: return "Alle"
-        case .one: return "Titel"
+        case .off: return "Off"
+        case .all: return "All"
+        case .one: return "Track"
         }
     }
 

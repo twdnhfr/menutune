@@ -30,7 +30,7 @@ final class CorruptLibraryTests: XCTestCase {
         model.setRepeat(.all)
         model.isQueueExpanded = true
 
-        XCTAssertEqual(model.queue.items.count, 1, "Im Speicher darf weitergearbeitet werden.")
-        XCTAssertEqual(try Data(contentsOf: url), damaged, "Die beschädigte Datei muss unverändert bleiben.")
+        XCTAssertEqual(model.queue.items.count, 1, "Work continues in memory.")
+        XCTAssertEqual(try Data(contentsOf: url), damaged, "The damaged file has to stay exactly as it was.")
     }
 }

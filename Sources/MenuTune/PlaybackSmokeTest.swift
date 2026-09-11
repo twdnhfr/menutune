@@ -82,7 +82,7 @@ enum PlaybackSmokeTest {
             model.seek(to: model.duration - 3)
             for _ in 0..<15 {
                 await wait(1)
-                if model.statusText == "Warteschlange beendet" { break }
+                if model.statusText == "End of queue" { break }
             }
             // Exercise the embedded player's replay action without native play().
             model.player.command("play")

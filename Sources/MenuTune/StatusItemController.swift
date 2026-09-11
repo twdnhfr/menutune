@@ -56,20 +56,20 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             // Without this AppKit re-enables every item during popUp.
             menu.autoenablesItems = false
             let playing = model.isPlaying || model.isLoading
-            let playback = NSMenuItem(title: playing ? "Pausieren" : "Abspielen", action: #selector(togglePlayback), keyEquivalent: "")
+            let playback = NSMenuItem(title: playing ? "Pause" : "Play", action: #selector(togglePlayback), keyEquivalent: "")
             playback.target = self
             playback.isEnabled = !model.queue.items.isEmpty
             menu.addItem(playback)
-            let next = NSMenuItem(title: "Nächster Titel", action: #selector(nextTrack), keyEquivalent: "")
+            let next = NSMenuItem(title: "Next Track", action: #selector(nextTrack), keyEquivalent: "")
             next.target = self
             menu.addItem(next)
             menu.addItem(.separator())
-            let popOut = NSMenuItem(title: model.isPoppedOut ? "Video zurückholen" : "Video auskoppeln", action: #selector(togglePopOut), keyEquivalent: "")
+            let popOut = NSMenuItem(title: model.isPoppedOut ? "Put Video Back" : "Pop Video Out", action: #selector(togglePopOut), keyEquivalent: "")
             popOut.target = self
             popOut.isEnabled = model.currentItem != nil
             menu.addItem(popOut)
             menu.addItem(.separator())
-            let quit = NSMenuItem(title: "MenuTune beenden", action: #selector(quitApp), keyEquivalent: "")
+            let quit = NSMenuItem(title: "Quit MenuTune", action: #selector(quitApp), keyEquivalent: "")
             quit.target = self
             menu.addItem(quit)
             hide()

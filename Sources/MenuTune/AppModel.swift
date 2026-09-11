@@ -7,7 +7,7 @@ final class AppModel: ObservableObject {
     enum PlaybackIndicator { case idle, paused, playing }
     @Published var input = ""
     @Published var queue: PlaybackQueue
-    @Published var statusText = "Bereit für deine Musik"
+    @Published var statusText = "Ready when you are"
     @Published var isPlaying = false
     @Published var isLoading = false
     @Published var playbackIndicator: PlaybackIndicator = .idle
@@ -85,7 +85,7 @@ final class AppModel: ObservableObject {
         isQueueExpanded = snapshot.queueExpanded
         if let loadError {
             canSave = false
-            storageWarning = "Die gespeicherte Liste konnte nicht gelesen werden. Sie bleibt unverändert; neue Änderungen werden vorerst nicht gespeichert. \(loadError)"
+            storageWarning = "The saved queue could not be read. It stays untouched, and changes are not saved for now. \(loadError)"
         }
         player.onEvent = { [weak self] in self?.handle($0) }
         if connectsToYouTube { player.initialize() }
@@ -102,7 +102,7 @@ final class AppModel: ObservableObject {
             skippedInRow = 0
             if alreadyQueued {
                 // Nothing changed on disk, but silence would look like a dead button.
-                statusText = "Steht schon in der Warteschlange"
+                statusText = "Already in the queue"
             } else {
                 save()
                 fetchTitle(for: id)
@@ -129,7 +129,7 @@ final class AppModel: ObservableObject {
         _ = queue.append(videoID: videoID)
         dismissClipboardSuggestion()
         if alreadyQueued {
-            statusText = "Steht schon in der Warteschlange"
+            statusText = "Already in the queue"
         } else {
             save()
             fetchTitle(for: videoID)
@@ -159,7 +159,7 @@ final class AppModel: ObservableObject {
         playbackIndicator = .idle
         isLoading = true
         errorMessage = nil
-        statusText = "Wird geladen …"
+        statusText = "Loading …"
         if ready { loadSelection() }
         else if playerNeedsReload {
             playerNeedsReload = false
@@ -195,7 +195,7 @@ final class AppModel: ObservableObject {
             player.command("pause")
             isPlaying = false
             playbackIndicator = selectionStarted ? .paused : .idle
-            statusText = "Pausiert"
+            statusText = "Paused"
         } else if token == nil || playbackFailed || !selectionLoaded || playbackEnded || !ready || playerNeedsReload {
             if let item = currentItem ?? queue.items.first { play(item) }
         } else {
@@ -259,7 +259,7 @@ final class AppModel: ObservableObject {
         isLoading = false
         currentTime = 0
         duration = 0
-        statusText = "Bereit für deine Musik"
+        statusText = "Ready when you are"
     }
 
     private func handle(_ event: [String: Any]) {
@@ -275,9 +275,9 @@ final class AppModel: ObservableObject {
             ready = false
             selectionLoaded = false
             playerNeedsReload = true
-            fail(kind == "terminated" ? "Der Player wurde beendet. Mit Play kannst du ihn neu laden." : "YouTube konnte nicht geladen werden. Prüfe deine Internetverbindung und versuche Play erneut.")
+            fail(kind == "terminated" ? "The player quit. Press play to load it again." : "YouTube could not be loaded. Check your connection and press play again.")
         case "commandError":
-            fail("Die Wiedergabe konnte nicht gesteuert werden. Bitte versuche Play erneut.")
+            fail("The player did not accept that command. Press play again.")
         default:
             guard let eventToken = event["token"] as? String, eventToken == token else { return }
             switch kind {
@@ -299,33 +299,33 @@ final class AppModel: ObservableObject {
                     skippedInRow = 0
                     errorMessage = nil
                     loadTask?.cancel()
-                    isPlaying = true; isLoading = false; statusText = "Wird abgespielt"
+                    isPlaying = true; isLoading = false; statusText = "Playing"
                     playbackIndicator = .playing
                 case 2:
                     shouldPlay = false
                     loadTask?.cancel()
-                    isPlaying = false; isLoading = false; statusText = "Pausiert"
+                    isPlaying = false; isLoading = false; statusText = "Paused"
                     playbackIndicator = selectionStarted ? .paused : .idle
                 case 3:
                     // Keep the indicator as it is; buffering is not a stop.
-                    isLoading = true; statusText = "Puffert …"
+                    isLoading = true; statusText = "Buffering …"
                 case 0:
                     isPlaying = false; isLoading = false
                     playbackIndicator = .idle
                     guard shouldPlay, selectionStarted else { return }
                     if let item = queue.next(automatic: true) { play(item) }
-                    else { shouldPlay = false; playbackEnded = true; statusText = "Warteschlange beendet"; save() }
+                    else { shouldPlay = false; playbackEnded = true; statusText = "End of queue"; save() }
                 default: break
                 }
             case "error":
                 let code = event["code"] as? Int ?? 0
                 let explanation: String
                 switch code {
-                case 100: explanation = "Dieses Video ist privat, gelöscht oder nicht verfügbar."
-                case 101, 150: explanation = "Dieses Video darf nur direkt auf YouTube abgespielt werden."
-                case 153: explanation = "YouTube hat den eingebetteten Player nicht erkannt."
-                case 5: explanation = "YouTube konnte dieses Video hier nicht abspielen."
-                default: explanation = "Das Video konnte nicht geladen werden."
+                case 100: explanation = "This video is private, deleted or unavailable."
+                case 101, 150: explanation = "This video may only be played on YouTube itself."
+                case 153: explanation = "YouTube did not recognise the embedded player."
+                case 5: explanation = "YouTube could not play this video here."
+                default: explanation = "The video could not be loaded."
                 }
                 // A video the embed refuses must not stall the whole queue. The
                 // counter bounds the skipping so an all-broken queue still stops.
@@ -333,7 +333,7 @@ final class AppModel: ObservableObject {
                    let following = queue.next(automatic: queue.repeatMode != .one) {
                     skippedInRow += 1
                     play(following)
-                    statusText = "Titel übersprungen: \(explanation)"
+                    statusText = "Skipped: \(explanation)"
                 } else {
                     fail("\(explanation) (\(code))")
                 }
@@ -346,18 +346,18 @@ final class AppModel: ObservableObject {
                     loadTask?.cancel()
                     isPlaying = true; isLoading = false
                     playbackIndicator = .playing
-                    statusText = "YouTube-Empfehlung läuft"
+                    statusText = "Playing a YouTube recommendation"
                 case 2:
                     isPlaying = false; isLoading = false
                     playbackIndicator = .paused
-                    statusText = "YouTube-Empfehlung pausiert"
+                    statusText = "YouTube recommendation paused"
                 case 0:
                     isPlaying = false; isLoading = false
                     playbackIndicator = .idle
-                    statusText = "YouTube-Empfehlung beendet"
+                    statusText = "YouTube recommendation ended"
                 default: break
                 }
-            case "blocked": fail("Drücke direkt im Video auf Play, um die Wiedergabe zu starten.")
+            case "blocked": fail("Press play inside the video to start playback.")
             default: break
             }
         }
@@ -369,7 +369,7 @@ final class AppModel: ObservableObject {
             try? await Task.sleep(for: .seconds(25))
             guard !Task.isCancelled, let self, !self.isPlaying else { return }
             if !self.ready { self.playerNeedsReload = true }
-            self.fail("Das Laden dauert ungewöhnlich lange. Versuche es mit Play erneut.")
+            self.fail("Loading is taking unusually long. Press play to try again.")
         }
     }
 
@@ -383,14 +383,14 @@ final class AppModel: ObservableObject {
         isPlaying = false
         playbackIndicator = .idle
         errorMessage = message
-        statusText = "Wiedergabe unterbrochen"
+        statusText = "Playback stopped"
     }
 
     private func save() {
         guard canSave else { return }
         do { try store.save(LibrarySnapshot(queue: queue, volume: volume, playerSize: playerSize,
                                             queueExpanded: isQueueExpanded)); storageWarning = nil }
-        catch { storageWarning = "Deine Liste konnte nicht gespeichert werden: \(error.localizedDescription)" }
+        catch { storageWarning = "Your queue could not be saved: \(error.localizedDescription)" }
     }
 
     private func fetchTitle(for videoID: String) {

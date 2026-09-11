@@ -16,12 +16,12 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --universal) universal=true ;;
         --sign)
-            [ $# -ge 2 ] || { printf 'Fehler: --sign braucht eine Identität.\n' >&2; exit 2; }
+            [ $# -ge 2 ] || { printf 'Error: --sign needs an identity.\n' >&2; exit 2; }
             identity="$2"
             hardened=true
             shift
             ;;
-        *) printf 'Fehler: unbekanntes Argument %s\n' "$1" >&2; exit 2 ;;
+        *) printf 'Error: unknown argument %s\n' "$1" >&2; exit 2 ;;
     esac
     shift
 done
@@ -67,6 +67,6 @@ fi
 codesign "${sign_args[@]}" "$app_dir"
 codesign --verify --strict "$app_dir"
 
-printf 'App erstellt: %s\n' "$app_dir"
-printf 'Architektur:  %s\n' "$(lipo -archs "$app_dir/Contents/MacOS/MenuTune")"
-printf 'Signatur:     %s\n' "$([ "$identity" = "-" ] && echo "ad hoc" || echo "$identity")"
+printf 'App built:    %s\n' "$app_dir"
+printf 'Architecture: %s\n' "$(lipo -archs "$app_dir/Contents/MacOS/MenuTune")"
+printf 'Signature:    %s\n' "$([ "$identity" = "-" ] && echo "ad hoc" || echo "$identity")"
