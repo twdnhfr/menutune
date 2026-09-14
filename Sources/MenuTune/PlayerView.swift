@@ -134,8 +134,10 @@ struct PlayerView: View {
                         Label("Put video back", systemImage: "pip.exit")
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.white.opacity(0.9))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.plain)
                     .help("Put the video back into the menu bar")
                 } else if model.queue.currentItem == nil {
                     if model.playerSize == .mini {
