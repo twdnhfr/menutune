@@ -11,8 +11,9 @@ final class AppModel: ObservableObject {
     @Published var isPlaying = false
     @Published var isLoading = false
     @Published var playbackIndicator: PlaybackIndicator = .idle
-    @Published var currentTime: Double = 0
-    @Published var duration: Double = 0
+    // Not published: they change twice a second and nothing on screen shows them.
+    private(set) var currentTime: Double = 0
+    private(set) var duration: Double = 0
     @Published var errorMessage: String?
     @Published var storageWarning: String?
     @Published var shortcutWarning: String?
@@ -396,7 +397,7 @@ final class AppModel: ObservableObject {
     private func fetchTitle(for videoID: String) {
         // Any unresolved copy justifies a fetch; updateTitle then fills them all.
         guard connectsToYouTube, titleTasks[videoID] == nil,
-              queue.items.contains(where: { $0.videoID == videoID && $0.title == videoID }) else { return }
+              queue.items.contains(where: { $0.videoID == videoID && $0.fetchedTitle == nil }) else { return }
         titleTasks[videoID] = Task { [weak self] in
             defer { self?.titleTasks[videoID] = nil }
             var components = URLComponents(string: "https://www.youtube.com/oembed")!

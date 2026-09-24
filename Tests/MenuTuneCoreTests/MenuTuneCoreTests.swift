@@ -67,21 +67,18 @@ final class PlaybackQueueTests: XCTestCase {
         return (queue, first, second, third)
     }
 
-    func testNextPreviousAndRepeat() {
+    func testNextAndRepeat() {
         var (queue, first, second, third) = queue()
         XCTAssertEqual(queue.next(automatic: false), first)
         XCTAssertEqual(queue.next(automatic: false), second)
         XCTAssertEqual(queue.next(automatic: false), third)
         XCTAssertNil(queue.next(automatic: false))
         XCTAssertEqual(queue.currentItem, third)
-        XCTAssertEqual(queue.previous(), second)
-        XCTAssertEqual(queue.next(automatic: false), third)
         queue.repeatMode = .all
         XCTAssertEqual(queue.next(automatic: true), first)
-        XCTAssertEqual(queue.previous(), third)
         queue.repeatMode = .one
-        XCTAssertEqual(queue.next(automatic: true), third)
-        XCTAssertNil(queue.next(automatic: false))
+        XCTAssertEqual(queue.next(automatic: true), first)
+        XCTAssertEqual(queue.next(automatic: false), second)
     }
 
     func testASecondCopyOfTheSameVideoIsNeverAdded() {
@@ -119,14 +116,13 @@ final class PlaybackQueueTests: XCTestCase {
     }
 
     func testEdgesWithoutRepeatAndOnAnEmptyQueue() {
-        var (queue, first, _, _) = queue()
-        XCTAssertTrue(queue.select(first.id))
-        XCTAssertNil(queue.previous(), "Without repeat, the first track must not wrap to the end.")
-        XCTAssertEqual(queue.currentItemID, first.id)
+        var (queue, _, _, third) = queue()
+        XCTAssertTrue(queue.select(third.id))
+        XCTAssertNil(queue.next(automatic: true), "Without repeat, the last track must not wrap to the start.")
+        XCTAssertEqual(queue.currentItemID, third.id)
 
         var empty = PlaybackQueue()
         XCTAssertNil(empty.next(automatic: false))
-        XCTAssertNil(empty.previous())
         XCTAssertNil(empty.currentItem)
     }
 
@@ -192,6 +188,13 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(restored.queue.currentItemID, item.id)
         XCTAssertEqual(restored.playerSize, .mini)
         XCTAssertTrue(restored.queueExpanded)
+    }
+
+    func testAnOlderPlaceholderTitleStillCountsAsUnresolved() throws {
+        let json = #"{"id":"\#(UUID().uuidString)","videoID":"aaaaaaaaaaa","title":"aaaaaaaaaaa"}"#
+        let item = try JSONDecoder().decode(QueueItem.self, from: Data(json.utf8))
+        XCTAssertNil(item.fetchedTitle, "Older versions stored the video id in place of a missing title.")
+        XCTAssertEqual(item.title, "aaaaaaaaaaa")
     }
 
     func testAnOlderLibraryWithDuplicatesCollapsesOnLoad() throws {

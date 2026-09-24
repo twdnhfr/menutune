@@ -122,24 +122,25 @@ struct PlayerView: View {
         }
     }
 
+    @ViewBuilder
     private var video: some View {
-        YouTubeWebView(webView: model.player.webView, isActive: !model.isPoppedOut)
+        if model.isPoppedOut {
+            // No web view host underneath: it would take the clicks that
+            // miss the icons, leaving only the icons themselves clickable.
+            poppedOutControls
+                .frame(width: playerWidth, height: playerHeight)
+                .background(Color.black)
+        } else {
+            embeddedVideo
+        }
+    }
+
+    private var embeddedVideo: some View {
+        YouTubeWebView(model: model)
             .frame(width: playerWidth, height: playerHeight)
             .background(Color.black)
             .overlay {
-                if model.isPoppedOut {
-                    Button {
-                        model.onTogglePopOut?()
-                    } label: {
-                        Label("Put video back", systemImage: "pip.exit")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.9))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Put the video back into the menu bar")
-                } else if model.queue.currentItem == nil {
+                if model.queue.currentItem == nil {
                     if model.playerSize == .mini {
                         Button {
                             model.playerSize = .standard
@@ -165,6 +166,43 @@ struct PlayerView: View {
                 }
             }
             .accessibilityLabel("YouTube player")
+    }
+
+    /// The floating panel dodges the pointer, so its own controls are hard to
+    /// reach; the strip left in the menu offers pause and the way back.
+    private var poppedOutControls: some View {
+        let playing = model.isPlaying || model.isLoading
+        return HStack(spacing: 0) {
+            Button {
+                model.togglePlayback()
+            } label: {
+                Image(systemName: playing ? "pause.fill" : "play.fill")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(width: 52)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(playing ? "Pause" : "Play")
+            .accessibilityLabel(playing ? "Pause" : "Play")
+
+            Divider()
+                .overlay(.white.opacity(0.2))
+                .padding(.vertical, 12)
+
+            Button {
+                model.onTogglePopOut?()
+            } label: {
+                Label("Put video back", systemImage: "pip.exit")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Put the video back into the menu bar")
+        }
     }
 
     private var titleRow: some View {
@@ -399,7 +437,7 @@ struct PlayerView: View {
             .buttonStyle(.borderless)
             .help(model.isPoppedOut ? "Put the video back" : "Pop the video out, it dodges the pointer")
             .accessibilityLabel(model.isPoppedOut ? "Put the video back" : "Pop the video out")
-            .disabled(model.currentItem == nil)
+            .disabled(model.currentItem == nil && !model.isPoppedOut)
             Spacer()
             playerSizeControl
         }

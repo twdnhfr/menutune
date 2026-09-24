@@ -3,20 +3,31 @@ import Foundation
 public struct QueueItem: Identifiable, Codable, Equatable, Sendable {
     public let id: UUID
     public let videoID: String
-    public var title: String
+    /// Nil until YouTube has told us the real title.
+    public var fetchedTitle: String?
+
+    /// What the interface shows: the video id stands in until the title arrives.
+    public var title: String { fetchedTitle ?? videoID }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, videoID
+        case fetchedTitle = "title"
+    }
 
     public init(id: UUID = UUID(), videoID: String, title: String? = nil) {
         self.id = id
         self.videoID = videoID
-        self.title = title ?? videoID
+        fetchedTitle = title
     }
 
-    /// A missing title must not make the whole library unreadable.
+    /// A missing title must not make the whole library unreadable. Older
+    /// versions stored the video id as the title of an unresolved entry.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         videoID = try container.decode(String.self, forKey: .videoID)
-        title = try container.decodeIfPresent(String.self, forKey: .title) ?? videoID
+        let stored = try container.decodeIfPresent(String.self, forKey: .fetchedTitle)
+        fetchedTitle = stored == videoID ? nil : stored
     }
 }
 
@@ -109,18 +120,6 @@ public struct PlaybackQueue: Codable, Equatable, Sendable {
         return nil
     }
 
-    @discardableResult
-    public mutating func previous() -> QueueItem? {
-        guard !items.isEmpty, let currentItemID, let index = items.firstIndex(where: { $0.id == currentItemID }) else { return nil }
-        if index > 0 {
-            self.currentItemID = items[index - 1].id
-            return items[index - 1]
-        }
-        guard repeatMode == .all else { return nil }
-        self.currentItemID = items[items.count - 1].id
-        return items[items.count - 1]
-    }
-
     public mutating func remove(_ id: UUID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         let wasCurrent = currentItemID == id
@@ -146,6 +145,6 @@ public struct PlaybackQueue: Codable, Equatable, Sendable {
     }
 
     public mutating func updateTitle(videoID: String, title: String) {
-        for index in items.indices where items[index].videoID == videoID { items[index].title = title }
+        for index in items.indices where items[index].videoID == videoID { items[index].fetchedTitle = title }
     }
 }

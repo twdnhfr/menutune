@@ -65,7 +65,7 @@ enum PlaybackSmokeTest {
         var nextOK = false
         var replayOK = false
         if let first = model.currentItem, model.duration > 15 {
-            model.queue.items.append(QueueItem(videoID: first.videoID, title: first.title))
+            model.queue.items.append(QueueItem(videoID: first.videoID, title: first.fetchedTitle))
             model.seek(to: model.duration - 4)
             status.hide()
             for _ in 0..<20 {

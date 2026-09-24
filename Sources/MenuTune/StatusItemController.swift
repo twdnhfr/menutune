@@ -62,11 +62,12 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             menu.addItem(playback)
             let next = NSMenuItem(title: "Next Track", action: #selector(nextTrack), keyEquivalent: "")
             next.target = self
+            next.isEnabled = !model.queue.items.isEmpty
             menu.addItem(next)
             menu.addItem(.separator())
             let popOut = NSMenuItem(title: model.isPoppedOut ? "Put Video Back" : "Pop Video Out", action: #selector(togglePopOut), keyEquivalent: "")
             popOut.target = self
-            popOut.isEnabled = model.currentItem != nil
+            popOut.isEnabled = model.isPoppedOut || model.currentItem != nil
             menu.addItem(popOut)
             menu.addItem(.separator())
             let quit = NSMenuItem(title: "Quit MenuTune", action: #selector(quitApp), keyEquivalent: "")
@@ -107,7 +108,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         // Showing twice without an intervening hide would strand the old monitor.
         removeMonitor()
         clickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.hide()
+            // The monitor also sees some clicks that land inside the popover
+            // itself; closing on those swallows the click.
+            guard let self, self.popover.contentViewController?.view.window?.frame
+                .contains(NSEvent.mouseLocation) != true else { return }
+            self.hide()
         }
     }
 

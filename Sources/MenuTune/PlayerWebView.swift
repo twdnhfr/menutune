@@ -26,18 +26,24 @@ final class PlayerWebViewHost: NSView {
 }
 
 struct YouTubeWebView: NSViewRepresentable {
-    let webView: WKWebView
-    var isActive = true
+    let model: AppModel
 
     func makeNSView(context: Context) -> PlayerWebViewHost {
         let host = PlayerWebViewHost()
-        if isActive { host.attach(webView) }
+        update(host)
         return host
     }
 
     func updateNSView(_ host: PlayerWebViewHost, context: Context) {
-        if isActive { host.attach(webView) }
-        else { host.detach() }
+        update(host)
+    }
+
+    /// SwiftUI still updates this view once after the pop-out has taken the
+    /// player, just before it dismantles it. A flag captured with the view
+    /// would be stale by then and pull the player back, so read it live.
+    private func update(_ host: PlayerWebViewHost) {
+        if model.isPoppedOut { host.detach() }
+        else { host.attach(model.player.webView) }
     }
 
     static func dismantleNSView(_ host: PlayerWebViewHost, coordinator: ()) {
